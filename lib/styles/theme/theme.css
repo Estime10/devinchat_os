@@ -44,6 +44,7 @@
   --color-fg-dim: var(--fg-dim);
   --color-border-default: var(--border-default);
   --color-accent-fg: var(--accent-fg);
+  --color-danger-fg: var(--danger-fg);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
   --font-sans: var(--font-mona-sans);

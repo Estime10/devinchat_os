@@ -6,6 +6,7 @@ type AuthFieldProps = {
   type: "email" | "text" | "password";
   autoComplete: string;
   placeholder: string;
+  error?: string;
 };
 
 export function AuthField({
@@ -14,6 +15,7 @@ export function AuthField({
   type,
   autoComplete,
   placeholder,
+  error,
 }: AuthFieldProps) {
   return (
     <label className="flex flex-col gap-2">
@@ -25,7 +27,13 @@ export function AuthField({
         name={name}
         autoComplete={autoComplete}
         placeholder={placeholder}
+        aria-invalid={error ? true : undefined}
       />
+      {error ? (
+        <span className="font-sans text-xs text-danger-fg" role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
