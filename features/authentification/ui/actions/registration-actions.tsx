@@ -21,7 +21,7 @@ export function RegistrationActions({
         <button
           type="button"
           onClick={onLoginClick}
-          className="cursor-pointer text-fg-default underline-offset-4 hover:underline"
+          className="cursor-pointer uppercase text-fg-default underline-offset-4 hover:underline"
         >
           login
         </button>
