@@ -1,4 +1,4 @@
-import { Header } from "@/components/header/header";
+import { Header } from "@/components/layout/header/header";
 
 export default function MainLayout({
   children,
@@ -8,7 +8,7 @@ export default function MainLayout({
   return (
     <div className="relative flex min-h-full flex-1 flex-col">
       <Header />
-      <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-1 flex-col">
+      <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-1 flex-col px-[var(--layout-margin-x)]">
         {children}
       </div>
     </div>

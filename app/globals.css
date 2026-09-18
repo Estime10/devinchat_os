@@ -1,3 +1,4 @@
 @import "tailwindcss";
 @import "../lib/styles/theme/theme.css";
 @import "../lib/styles/layout/header.css";
+@import "../lib/styles/layout/page.css";

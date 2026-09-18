@@ -41,9 +41,9 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-50 border-b border-glass-border bg-glass-bg shadow-lg backdrop-blur-lg"
+      className="sticky top-0 z-50 w-full border-b border-glass-border bg-glass-bg backdrop-blur-lg"
     >
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center px-6">
+      <div className="flex h-14 w-full items-center px-[var(--layout-margin-x)]">
         <Link
           href="/home"
           className="font-sans text-sm font-semibold tracking-tight text-fg-default"

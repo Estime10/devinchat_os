@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { AuthentificationScreen } from "@/features/authentification/authentification-screen";
 
 export default function RootPage() {
-  redirect("/home");
+  return <AuthentificationScreen />;
 }
