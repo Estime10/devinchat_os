@@ -9,6 +9,7 @@ type RegistrationFormProps = {
   state: RegisterState;
   formAction: (payload: FormData) => void;
   pending: boolean;
+  onLoginClick: () => void;
 };
 
 /**
@@ -18,6 +19,7 @@ export function RegistrationForm({
   state,
   formAction,
   pending,
+  onLoginClick,
 }: RegistrationFormProps) {
   return (
     <form
@@ -67,7 +69,7 @@ export function RegistrationForm({
         </p>
       ) : null}
 
-      <RegistrationActions pending={pending} />
+      <RegistrationActions pending={pending} onLoginClick={onLoginClick} />
     </form>
   );
 }

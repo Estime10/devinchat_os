@@ -2,28 +2,28 @@
 
 import { Button } from "@/components/ui/button/button";
 
-type RegistrationActionsProps = {
+type LoginActionsProps = {
   pending?: boolean;
-  onLoginClick: () => void;
+  onRegisterClick: () => void;
 };
 
-export function RegistrationActions({
+export function LoginActions({
   pending = false,
-  onLoginClick,
-}: RegistrationActionsProps) {
+  onRegisterClick,
+}: LoginActionsProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <Button type="submit" disabled={pending}>
-        {pending ? "[ registering... ]" : "[ register ]"}
+        {pending ? "[ logging in... ]" : "[ login ]"}
       </Button>
       <p className="flex items-center gap-1.5 font-sans text-xs text-fg-muted uppercase">
-        <span>already registered?</span>
+        <span>no account?</span>
         <button
           type="button"
-          onClick={onLoginClick}
+          onClick={onRegisterClick}
           className="cursor-pointer text-fg-default underline-offset-4 hover:underline"
         >
-          login
+          register
         </button>
       </p>
     </div>
