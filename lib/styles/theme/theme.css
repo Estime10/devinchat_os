@@ -1,6 +1,7 @@
 /*
-  Thème hacker / terminal 90s — dark + phosphore vert.
-  Fond sur html (pas body) → pas de flash blanc au overscroll.
+  Tokens design (couleurs, fonts) — Tailwind v4 @theme → utilitaires.
+  Pas de classes CSS custom : le style vit dans les className.
+  Layout shell (header, etc.) → lib/styles/layout/
 */
 
 :root {
@@ -23,17 +24,14 @@
   --success-fg: #39ff14;
   --danger-fg: #ff3b3b;
 
-  /* Glass dark + teinte verte */
+  /* Glass (couleurs → bg-glass-bg, border-glass-border) */
   --glass-bg: rgba(10, 20, 10, 0.45);
   --glass-border: rgba(57, 255, 20, 0.22);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-  --glass-blur: 16px;
 
   --background: var(--canvas-subtle);
   --foreground: var(--fg-default);
 }
 
-/* Tailwind v4 — enregistre les tokens comme utilitaires */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,24 +47,4 @@
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
   --font-sans: var(--font-mona-sans);
-}
-
-html {
-  background-color: var(--background);
-  color: var(--foreground);
-}
-
-body {
-  background-color: transparent;
-  color: var(--foreground);
-  font-family:
-    var(--font-mona-sans), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-
-.glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
 }

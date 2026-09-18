@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { monaSans } from "@/lib/fonts";
+import { monaSans } from "@/lib/fonts/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,8 +9,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${monaSans.variable} h-full antialiased`}>
-      <body className="font-sans min-h-full flex flex-col">{children}</body>
+    <html
+      lang="fr"
+      className={`${monaSans.variable} h-full bg-background text-foreground antialiased`}
+    >
+      <body className="flex min-h-full flex-col bg-transparent font-sans text-foreground">
+        {children}
+      </body>
     </html>
   );
 }
