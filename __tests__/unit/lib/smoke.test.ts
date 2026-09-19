@@ -1,6 +1,6 @@
 /**
  * Smoke test — vérifie que Vitest tourne.
- * Convention : __tests__/unit|integration (séparés du code app/features/components).
+ * Convention : __tests__/unit|integration (séparés du code app/frontend/backend).
  */
 import { describe, expect, it } from "vitest";
 

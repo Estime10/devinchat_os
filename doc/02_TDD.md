@@ -606,45 +606,44 @@ Zod ne remplace pas l’intégrité en base.
 
 # 14. Architecture de domaine
 
-Le projet doit utiliser une architecture **feature-based**.
+Le projet doit utiliser une architecture **feature-based**, avec séparation claire frontend / backend et un **ordre de flow produit** via préfixes numériques.
 
-Structure suggérée :
+Structure cible (alignée sur le repo) :
 
 ```text
-src/
-├── app/
-│   ├── (auth)/
-│   ├── (workspace)/
-│   ├── api/
-│   └── ...
-│
-├── features/
-│   ├── projects/
-│   │   ├── components/
-│   │   ├── services/
-│   │   ├── mutations/
-│   │   ├── queries/
-│   │   ├── schemas/
-│   │   └── types/
-│   │
-│   ├── features/
-│   ├── github/
-│   ├── activity/
-│   ├── dashboard/
-│   └── command-center/
-│
-├── components/
+app/
+├── (01_auth)/                 # page auth publique (/)
+├── (02_protected)/            # zone session (/home, …)
+│   └── home/
+└── api/                       # adapters Next Route Handlers (minces)
+
+frontend/
+├── components/                # UI transverse
 │   ├── ui/
-│   └── layout/
-│
-├── lib/
-│   ├── auth/
-│   ├── supabase/
-│   ├── github/
-│   ├── validation/
-│   └── utils/
-│
-└── ...
+│   ├── layout/
+│   └── states/                # error / empty / loading
+└── features/                  # UI produit — ordre = parcours user
+    ├── 01_authentification/
+    └── 02_homescreen/
+        └── github/            # UI GitHub (pas un 03 top-level)
+
+backend/
+├── controllers/               # couche HTTP unique (hors features)
+└── features/                  # domaine serveur
+    ├── 01_authentification/   # mutations, schemas, services
+    └── 02_github/             # domain, messages, services (tokens chiffrés)
+
+lib/
+├── api/endpoints.ts           # registre des chemins /api/*
+├── github/                    # client OAuth / repos (infra)
+├── supabase/
+├── crypto/
+└── routes.ts                  # chemins pages (+ réexport API)
+
+doc/
+supabase/migrations/
+__tests__/
+proxy.ts                       # Next.js 16 — session + garde routes
 ```
 
 Éviter les dossiers globaux fourre-tout du type :
@@ -658,7 +657,12 @@ api/
 
 contenant de la logique applicative sans lien.
 
-La logique de domaine appartient **près de sa feature**.
+Règles :
+
+* logique de domaine → `backend/features/*`
+* UI feature → `frontend/features/*` (présentation pure)
+* controllers HTTP → `backend/controllers` uniquement
+* `app/api` = adapters Next, pas de logique métier
 
 ---
 
@@ -905,13 +909,9 @@ Ne pas appeler GitHub directement depuis des composants aléatoires.
 Utiliser une couche d’intégration dédiée :
 
 ```text
-features/github/
-```
-
-ou :
-
-```text
-lib/github/
+lib/github/                         # client HTTP / OAuth / mapping
+backend/features/02_github/         # services + règles métier
+frontend/features/02_homescreen/github/   # UI uniquement
 ```
 
 Le client GitHub est responsable de :

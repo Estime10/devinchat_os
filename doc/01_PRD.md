@@ -354,7 +354,7 @@ Un utilisateur connecté doit pouvoir, en < 1 minute :
 | Front | Next.js latest (App Router), React, TypeScript strict, Tailwind |
 | Backend | Supabase (Auth, Postgres, Edge Functions / RLS) |
 | Source de vérité activité | GitHub API (+ webhooks si possible) |
-| Domaine | Entités isolées de l’UI (`features/` côté app) |
+| Domaine | Entités isolées de l’UI (`backend/features/*` + UI dans `frontend/features/*`) |
 
 ### Principes d’implémentation alignés rules Cursor
 
@@ -368,12 +368,19 @@ Un utilisateur connecté doit pouvoir, en < 1 minute :
 ### Structure app (cible)
 
 ```
-/app                  → routing + orchestration
-/components/ui        → présentation
-/features/*           → domaine (projects, features, github-sync, progress)
-/lib                  → transverse (supabase client, github client)
-/types                → types centralisés
-/doc                  → PRD & décisions produit (ce dossier)
+/app                         → routing Next (groupes ordonnés 01_auth → 02_protected) + api/
+/frontend/components         → UI transverse (ui, layout, states)
+/frontend/features           → UI produit ordonnée par flow
+  /01_authentification
+  /02_homescreen
+    /github                  → UI connexion GitHub (sous-flow homescreen)
+/backend/controllers         → transport HTTP (adapters app/api délèguent ici)
+/backend/features            → domaine serveur ordonné
+  /01_authentification
+  /02_github                 → OAuth tokens, repos, règles métier
+/lib                         → transverse (supabase, api/endpoints, github client, crypto)
+/doc                         → PRD & décisions produit
+/supabase/migrations         → schéma Postgres
 ```
 
 ---

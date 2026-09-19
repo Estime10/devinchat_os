@@ -1,14 +1,14 @@
+import { API } from "@/lib/api/endpoints";
+
 /**
- * Source de vérité des chemins applicatifs.
- * Importer depuis ici — jamais de string de route hardcodée ailleurs
- * (sauf `proxy.ts` `config.matcher`, qui doit rester des littéraux Next.js).
+ * Source de vérité des chemins pages.
+ * Les endpoints API → `lib/api/endpoints.ts` (réexportés ici pour commodité).
+ * (sauf `proxy.ts` `config.matcher`, littéraux Next.js obligatoires).
  */
 export const ROUTES = {
   auth: "/",
   home: "/home",
-  api: {
-    me: "/api/me",
-  },
+  api: API,
 } as const;
 
 /** Routes qui exigent une session authentifiée. */
@@ -22,3 +22,5 @@ export function isProtectedPath(pathname: string): boolean {
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 }
+
+export const GITHUB_OAUTH_STATE_COOKIE = "github_oauth_state";

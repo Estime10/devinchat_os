@@ -2,10 +2,12 @@ import { isProtectedPath, PROTECTED_ROUTES, ROUTES } from "@/lib/routes";
 import { describe, expect, it } from "vitest";
 
 describe("ROUTES", () => {
-  it("expose les chemins auth, home et api.me", () => {
+  it("expose les chemins auth, home et api", () => {
     expect(ROUTES.auth).toBe("/");
     expect(ROUTES.home).toBe("/home");
     expect(ROUTES.api.me).toBe("/api/me");
+    expect(ROUTES.api.github.connect).toBe("/api/github/connect");
+    expect(ROUTES.api.github.callback).toBe("/api/github/callback");
   });
 
   it("marque home comme route protégée", () => {

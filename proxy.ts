@@ -25,8 +25,15 @@ export async function proxy(request: NextRequest) {
 
 /**
  * Matcher Next.js — littéraux obligatoires (pas d'import / spread).
- * Doit rester aligné avec ROUTES + PROTECTED_ROUTES (`lib/routes.ts`).
+ * Doit rester aligné avec API (`lib/api/endpoints.ts`) + ROUTES.
  */
 export const config = {
-  matcher: ["/", "/home", "/home/:path*", "/api/me"],
+  matcher: [
+    "/",
+    "/home",
+    "/home/:path*",
+    "/api/me",
+    "/api/github/connect",
+    "/api/github/callback",
+  ],
 };
