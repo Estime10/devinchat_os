@@ -5,4 +5,5 @@
  */
 export { callbackGithubController } from "@/backend/controllers/callback-github";
 export { connectGithubController } from "@/backend/controllers/connect-github";
+export { getGithubCommitActivityController } from "@/backend/controllers/get-github-commit-activity";
 export { getMeController } from "@/backend/controllers/get-me";

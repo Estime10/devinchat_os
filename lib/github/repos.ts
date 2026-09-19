@@ -4,7 +4,10 @@ export type GithubRepo = {
   fullName: string;
   isPrivate: boolean;
   htmlUrl: string;
-  description: string | null;
+  /** ISO — création du repo. */
+  createdAt: string | null;
+  /** ISO — dernier push (activité git). */
+  pushedAt: string | null;
 };
 
 type GithubRepoApiItem = {
@@ -13,7 +16,8 @@ type GithubRepoApiItem = {
   full_name?: string;
   private?: boolean;
   html_url?: string;
-  description?: string | null;
+  created_at?: string | null;
+  pushed_at?: string | null;
 };
 
 function mapGithubRepo(item: GithubRepoApiItem): GithubRepo | null {
@@ -33,7 +37,8 @@ function mapGithubRepo(item: GithubRepoApiItem): GithubRepo | null {
     fullName: item.full_name,
     isPrivate: item.private,
     htmlUrl: item.html_url,
-    description: typeof item.description === "string" ? item.description : null,
+    createdAt: typeof item.created_at === "string" ? item.created_at : null,
+    pushedAt: typeof item.pushed_at === "string" ? item.pushed_at : null,
   };
 }
 

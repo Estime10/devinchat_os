@@ -9,19 +9,19 @@ type GithubReposBoardProps = {
 };
 
 /**
- * Board repos — compose private | public (aucune logique métier).
+ * Board repos — private | public, colonnes pleine hauteur.
  */
 export function GithubReposBoard({
   privateRepos,
   publicRepos,
 }: GithubReposBoardProps) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <p className="font-sans text-xs tracking-[0.2em] text-white uppercase">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+      <p className="shrink-0 font-sans text-xs tracking-[0.2em] text-white uppercase">
         {"// repositories"}
       </p>
 
-      <div className="grid min-h-0 flex-1 gap-8 lg:grid-cols-2 lg:gap-10">
+      <div className="grid min-h-0 flex-1 gap-8 overflow-hidden lg:grid-cols-2 lg:gap-14">
         <GithubRepoColumn
           title="private"
           repos={privateRepos}

@@ -35,5 +35,6 @@ export const config = {
     "/api/me",
     "/api/github/connect",
     "/api/github/callback",
+    "/api/github/repos/commit-activity",
   ],
 };

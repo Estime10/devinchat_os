@@ -8,6 +8,7 @@ export const API = {
   github: {
     connect: "/api/github/connect",
     callback: "/api/github/callback",
+    commitActivity: "/api/github/repos/commit-activity",
   },
 } as const;
 
@@ -16,4 +17,5 @@ export const API_ENDPOINTS = [
   API.me,
   API.github.connect,
   API.github.callback,
+  API.github.commitActivity,
 ] as const;

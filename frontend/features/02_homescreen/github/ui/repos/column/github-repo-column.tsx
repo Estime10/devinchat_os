@@ -1,13 +1,28 @@
+"use client";
+
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
+import { GithubReposPagination } from "@/frontend/features/02_homescreen/github/ui/repos/pagination/github-repos-pagination";
 import { GithubRepoRow } from "@/frontend/features/02_homescreen/github/ui/repos/row/github-repo-row";
+import { API } from "@/lib/api/endpoints";
+import { formatAbsoluteDate } from "@/lib/format/absolute-date";
+import { formatRelativeTime } from "@/lib/format/relative-time";
+import { paginate } from "@/lib/pagination/paginate";
+import gsap from "gsap";
+import { useEffect, useRef, useState } from "react";
 
 /** Item liste — type collé au consommateur colonne (DRY pour le board). */
 export type GithubRepoListItem = {
   id: number;
   fullName: string;
   htmlUrl: string;
-  description: string | null;
+  createdAt: string | null;
+  pushedAt: string | null;
 };
+
+/** Max 5 repos visibles — hauteur naturelle, pagination juste en dessous. */
+const REPOS_PAGE_SIZE = 5;
+
+type ActivityMap = Record<string, number[] | null>;
 
 type GithubRepoColumnProps = {
   title: string;
@@ -16,38 +31,176 @@ type GithubRepoColumnProps = {
 };
 
 /**
- * Colonne de repos (private ou public).
+ * Colonne de repos — 5 / page, date push, sparkline page visible.
  */
 export function GithubRepoColumn({
   title,
   repos,
   emptyLabel,
 }: GithubRepoColumnProps) {
+  const [page, setPage] = useState(1);
+  const [activity, setActivity] = useState<ActivityMap>({});
+  const [isActivityLoading, setIsActivityLoading] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  const isFirstRender = useRef(true);
+
+  const {
+    items,
+    page: safePage,
+    totalPages,
+    totalItems,
+  } = paginate(repos, page, REPOS_PAGE_SIZE);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) {
+      return;
+    }
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    gsap.fromTo(
+      list,
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" },
+    );
+  }, [safePage]);
+
+  useEffect(() => {
+    const fullNames = items.map((repo) => repo.fullName);
+    if (fullNames.length === 0) {
+      return;
+    }
+
+    const missing = fullNames.filter((name) => !(name in activity));
+    if (missing.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      setIsActivityLoading(true);
+      try {
+        const response = await fetch(API.github.commitActivity, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fullNames: missing }),
+        });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          activity?: ActivityMap;
+        };
+
+        if (!payload.activity || cancelled) {
+          return;
+        }
+
+        setActivity((current) => ({ ...current, ...payload.activity }));
+      } finally {
+        if (!cancelled) {
+          setIsActivityLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // activity intentionnellement omis — évite refetch boucle
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- page items only
+  }, [items]);
+
+  const goToPage = (nextPage: number) => {
+    const list = listRef.current;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (!list || prefersReducedMotion) {
+      setPage(nextPage);
+      return;
+    }
+
+    gsap.to(list, {
+      opacity: 0,
+      y: -8,
+      duration: 0.16,
+      ease: "power2.in",
+      onComplete: () => {
+        setPage(nextPage);
+      },
+    });
+  };
+
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <header className="mb-4 flex items-baseline justify-between gap-3 border-b border-glass-border pb-3">
-        <h2 className="font-sans text-sm font-semibold tracking-tight text-fg-default uppercase">
+    <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <header className="mb-4 flex shrink-0 items-baseline justify-between gap-3 border-b border-glass-border pb-4">
+        <h2 className="font-sans text-base font-semibold tracking-tight text-fg-default uppercase">
           {title}
         </h2>
-        <span className="font-sans text-xs text-white/50 tabular-nums">
-          {repos.length}
+        <span className="font-sans text-sm text-white/50 tabular-nums">
+          {totalItems}
         </span>
       </header>
 
-      {repos.length === 0 ? (
+      {totalItems === 0 ? (
         <StateEmpty>{emptyLabel}</StateEmpty>
       ) : (
-        <ul className="flex min-h-0 flex-col gap-1 overflow-y-auto">
-          {repos.map((repo) => (
-            <li key={repo.id}>
-              <GithubRepoRow
-                fullName={repo.fullName}
-                htmlUrl={repo.htmlUrl}
-                description={repo.description}
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
+          <ul
+            ref={listRef}
+            className="flex min-h-0 flex-1 flex-col [&>li:last-child_a]:border-b-0"
+          >
+            {items.map((repo) => {
+              const hasActivity = repo.fullName in activity;
+              return (
+                <li key={repo.id} className="flex min-h-0 flex-1">
+                  <GithubRepoRow
+                    fullName={repo.fullName}
+                    htmlUrl={repo.htmlUrl}
+                    createdAtLabel={
+                      repo.createdAt ? formatAbsoluteDate(repo.createdAt) : null
+                    }
+                    pushedAtLabel={
+                      repo.pushedAt
+                        ? formatRelativeTime(repo.pushedAt)
+                        : "never"
+                    }
+                    weeklyCommits={hasActivity ? activity[repo.fullName] : null}
+                    isActivityLoading={isActivityLoading && !hasActivity}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+
+          <GithubReposPagination
+            page={safePage}
+            totalPages={totalPages}
+            onPrevious={() => {
+              goToPage(Math.max(1, safePage - 1));
+            }}
+            onNext={() => {
+              goToPage(Math.min(totalPages, safePage + 1));
+            }}
+          />
+        </div>
       )}
     </section>
   );
