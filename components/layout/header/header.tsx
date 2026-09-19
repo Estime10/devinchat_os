@@ -1,16 +1,20 @@
 "use client";
 
+import { logoutUser } from "@/backend/authentification/mutations/logout-user";
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 const HEADER_HEIGHT_VAR = "--header-height";
 
+type HeaderProps = {
+  displayName: string;
+};
+
 /**
- * Header sticky. Mesure sa hauteur et l’écrit sur <html> en --header-height
- * pour que les sections puissent négocier l’espace restant :
- * min-h-[calc(100dvh-var(--header-height))]
+ * Header sticky — logo gauche, display_name centre (uppercase), logout droite.
  */
-export function Header() {
+export function Header({ displayName }: HeaderProps) {
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -43,13 +47,27 @@ export function Header() {
       ref={headerRef}
       className="sticky top-0 z-50 w-full border-b border-glass-border bg-glass-bg backdrop-blur-lg"
     >
-      <div className="flex h-14 w-full items-center px-[var(--layout-margin-x)]">
+      <div className="relative flex h-14 w-full items-center justify-between px-[var(--layout-margin-x)]">
         <Link
-          href="/home"
+          href={ROUTES.home}
           className="font-sans text-sm font-semibold tracking-tight text-fg-default"
         >
           DevinChat OS
         </Link>
+
+        <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-sans text-sm tracking-tight text-fg-default uppercase">
+          <span className="text-fg-dim">@</span>
+          {displayName}
+        </p>
+
+        <form action={logoutUser}>
+          <button
+            type="submit"
+            className="cursor-pointer font-sans text-sm tracking-tight text-fg-muted uppercase transition-colors hover:text-fg-default"
+          >
+            [ logout ]
+          </button>
+        </form>
       </div>
     </header>
   );

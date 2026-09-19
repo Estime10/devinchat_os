@@ -1,9 +1,11 @@
 "use client";
 
+import { isRegisterFormComplete } from "@/backend/authentification/schemas/register-form-complete";
 import type { RegisterState } from "@/backend/authentification/schemas/register-state";
 import { RegistrationActions } from "@/features/authentification/ui/actions/registration-actions";
 import { AuthField } from "@/features/authentification/ui/field/auth-field";
 import { RegistrationHeader } from "@/features/authentification/ui/header/registration-header";
+import { useState, type FormEvent } from "react";
 
 type RegistrationFormProps = {
   state: RegisterState;
@@ -21,9 +23,17 @@ export function RegistrationForm({
   pending,
   onLoginClick,
 }: RegistrationFormProps) {
+  const [isComplete, setIsComplete] = useState(false);
+
+  const handleFormChange = (event: FormEvent<HTMLFormElement>) => {
+    setIsComplete(isRegisterFormComplete(new FormData(event.currentTarget)));
+  };
+
   return (
     <form
       action={formAction}
+      onInput={handleFormChange}
+      onChange={handleFormChange}
       className="flex h-full w-full flex-col justify-center gap-8 px-6 py-10 sm:px-10 md:px-14"
     >
       <RegistrationHeader />
@@ -69,7 +79,11 @@ export function RegistrationForm({
         </p>
       ) : null}
 
-      <RegistrationActions pending={pending} onLoginClick={onLoginClick} />
+      <RegistrationActions
+        pending={pending}
+        isComplete={isComplete}
+        onLoginClick={onLoginClick}
+      />
     </form>
   );
 }

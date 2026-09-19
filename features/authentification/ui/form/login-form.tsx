@@ -1,9 +1,11 @@
 "use client";
 
+import { isLoginFormComplete } from "@/backend/authentification/schemas/login-form-complete";
 import type { LoginState } from "@/backend/authentification/schemas/login-state";
 import { LoginActions } from "@/features/authentification/ui/actions/login-actions";
 import { AuthField } from "@/features/authentification/ui/field/auth-field";
 import { LoginHeader } from "@/features/authentification/ui/header/login-header";
+import { useState, type FormEvent } from "react";
 
 type LoginFormProps = {
   state: LoginState;
@@ -18,9 +20,17 @@ export function LoginForm({
   pending,
   onRegisterClick,
 }: LoginFormProps) {
+  const [isComplete, setIsComplete] = useState(false);
+
+  const handleFormChange = (event: FormEvent<HTMLFormElement>) => {
+    setIsComplete(isLoginFormComplete(new FormData(event.currentTarget)));
+  };
+
   return (
     <form
       action={formAction}
+      onInput={handleFormChange}
+      onChange={handleFormChange}
       className="flex h-full w-full flex-col justify-center gap-8 px-6 py-10 sm:px-10 md:px-14"
     >
       <LoginHeader />
@@ -50,7 +60,11 @@ export function LoginForm({
         </p>
       ) : null}
 
-      <LoginActions pending={pending} onRegisterClick={onRegisterClick} />
+      <LoginActions
+        pending={pending}
+        isComplete={isComplete}
+        onRegisterClick={onRegisterClick}
+      />
     </form>
   );
 }

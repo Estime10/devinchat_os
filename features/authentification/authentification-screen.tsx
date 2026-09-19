@@ -8,6 +8,7 @@ import { GlassPanel } from "@/components/ui/glass/glass-panel";
 import { LoginForm } from "@/features/authentification/ui/form/login-form";
 import { RegistrationForm } from "@/features/authentification/ui/form/registration-form";
 import { AuthQuotesPanel } from "@/features/authentification/ui/quotes/auth-quotes-panel";
+import { ROUTES } from "@/lib/routes";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useState } from "react";
 
@@ -30,7 +31,7 @@ export function AuthentificationScreen() {
   const isSuccess = mode === "register" ? registerState.ok : loginState.ok;
 
   const handleProgressComplete = useCallback(() => {
-    router.push("/home");
+    router.push(ROUTES.home);
   }, [router]);
 
   return (
