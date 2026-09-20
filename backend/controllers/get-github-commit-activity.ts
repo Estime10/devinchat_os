@@ -1,8 +1,5 @@
+import { getOwnGithubCommitActivity } from "@/backend/features/02_github/services/get-own-github-commit-activity";
 import { getOwnGithubAccessToken } from "@/backend/features/02_github/services/get-own-github-access-token";
-import {
-  fetchGithubCommitActivity,
-  parseGithubFullName,
-} from "@/lib/github/commit-activity";
 import { NextResponse } from "next/server";
 
 const MAX_REPOS_PER_REQUEST = 12;
@@ -12,7 +9,7 @@ type CommitActivityBody = {
 };
 
 /**
- * POST — tendances commits (12 semaines) pour les repos visibles uniquement.
+ * POST — tendances commits (délègue au service whitelist + cache).
  */
 export async function getGithubCommitActivityController(request: Request) {
   const accessToken = await getOwnGithubAccessToken();
@@ -35,24 +32,7 @@ export async function getGithubCommitActivityController(request: Request) {
     .filter((name): name is string => typeof name === "string")
     .slice(0, MAX_REPOS_PER_REQUEST);
 
-  const entries = await Promise.all(
-    fullNames.map(async (fullName) => {
-      const parsed = parseGithubFullName(fullName);
-      if (!parsed) {
-        return [fullName, null] as const;
-      }
+  const activity = await getOwnGithubCommitActivity(fullNames);
 
-      const weeks = await fetchGithubCommitActivity({
-        accessToken,
-        owner: parsed.owner,
-        repo: parsed.repo,
-      });
-
-      return [fullName, weeks] as const;
-    }),
-  );
-
-  return NextResponse.json({
-    activity: Object.fromEntries(entries) as Record<string, number[] | null>,
-  });
+  return NextResponse.json({ activity });
 }

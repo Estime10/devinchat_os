@@ -1,9 +1,12 @@
+import { GithubUnauthorizedError } from "@/lib/github/github-unauthorized-error";
+
 export type GithubRepo = {
   id: number;
   name: string;
   fullName: string;
   isPrivate: boolean;
   htmlUrl: string;
+  defaultBranch: string;
   /** ISO — création du repo. */
   createdAt: string | null;
   /** ISO — dernier push (activité git). */
@@ -16,6 +19,7 @@ type GithubRepoApiItem = {
   full_name?: string;
   private?: boolean;
   html_url?: string;
+  default_branch?: string | null;
   created_at?: string | null;
   pushed_at?: string | null;
 };
@@ -37,13 +41,25 @@ function mapGithubRepo(item: GithubRepoApiItem): GithubRepo | null {
     fullName: item.full_name,
     isPrivate: item.private,
     htmlUrl: item.html_url,
+    defaultBranch:
+      typeof item.default_branch === "string" && item.default_branch.length > 0
+        ? item.default_branch
+        : "main",
     createdAt: typeof item.created_at === "string" ? item.created_at : null,
     pushedAt: typeof item.pushed_at === "string" ? item.pushed_at : null,
   };
 }
 
+const githubApiHeaders = (accessToken: string) => ({
+  Accept: "application/vnd.github+json",
+  Authorization: `Bearer ${accessToken}`,
+  "User-Agent": "devinchat-os",
+  "X-GitHub-Api-Version": "2022-11-28",
+});
+
 /**
  * Liste les repos accessibles du user authentifié (paginé).
+ * @throws {GithubUnauthorizedError} token rejeté (401)
  */
 export async function fetchGithubRepos(
   accessToken: string,
@@ -63,14 +79,13 @@ export async function fetchGithubRepos(
     url.searchParams.set("sort", "updated");
 
     const response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${accessToken}`,
-        "User-Agent": "devinchat-os",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-      next: { revalidate: 0 },
+      headers: githubApiHeaders(accessToken),
+      cache: "no-store",
     });
+
+    if (response.status === 401) {
+      throw new GithubUnauthorizedError();
+    }
 
     if (!response.ok) {
       throw new Error("GitHub repositories fetch failed");
@@ -96,6 +111,48 @@ export async function fetchGithubRepos(
   }
 
   return repos;
+}
+
+export type FetchGithubRepoResult =
+  | { kind: "ok"; repo: GithubRepo }
+  | { kind: "unauthorized" }
+  | { kind: "missing" }
+  | { kind: "error" };
+
+/**
+ * Un repo GitHub si accessible avec le token.
+ */
+export async function fetchGithubRepo(
+  accessToken: string,
+  owner: string,
+  repo: string,
+): Promise<FetchGithubRepoResult> {
+  const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+
+  const response = await fetch(url, {
+    headers: githubApiHeaders(accessToken),
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    return { kind: "unauthorized" };
+  }
+
+  if (response.status === 403 || response.status === 404) {
+    return { kind: "missing" };
+  }
+
+  if (!response.ok) {
+    return { kind: "error" };
+  }
+
+  const payload = (await response.json()) as GithubRepoApiItem;
+  const mapped = mapGithubRepo(payload);
+  if (!mapped) {
+    return { kind: "error" };
+  }
+
+  return { kind: "ok", repo: mapped };
 }
 
 export function splitReposByVisibility(repos: GithubRepo[]): {

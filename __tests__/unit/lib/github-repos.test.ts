@@ -8,6 +8,7 @@ function repo(
     name: partial.name ?? `repo-${partial.id}`,
     fullName: partial.fullName ?? `user/repo-${partial.id}`,
     htmlUrl: partial.htmlUrl ?? `https://github.com/user/repo-${partial.id}`,
+    defaultBranch: partial.defaultBranch ?? "main",
     createdAt: partial.createdAt ?? null,
     pushedAt: partial.pushedAt ?? null,
     ...partial,

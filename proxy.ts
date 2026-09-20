@@ -32,6 +32,8 @@ export const config = {
     "/",
     "/home",
     "/home/:path*",
+    "/repository",
+    "/repository/:path*",
     "/api/me",
     "/api/github/connect",
     "/api/github/callback",

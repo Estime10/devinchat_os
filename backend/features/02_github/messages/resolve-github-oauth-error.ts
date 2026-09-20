@@ -5,6 +5,7 @@ const GITHUB_OAUTH_ERROR_MESSAGES: Record<string, string> = {
   conflict: "That GitHub account is already linked to another user.",
   persist: "Could not save the GitHub connection. Try again.",
   exchange: "GitHub token exchange failed. Try again.",
+  expired: "Your GitHub connection expired. Connect again.",
 };
 
 /**

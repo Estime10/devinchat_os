@@ -2,11 +2,14 @@
 
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
 import { GithubReposPagination } from "@/frontend/features/02_homescreen/github/ui/repos/pagination/github-repos-pagination";
+import { REPOS_PAGE_SIZE } from "@/frontend/features/02_homescreen/github/ui/repos/repos-page-size";
 import { GithubRepoRow } from "@/frontend/features/02_homescreen/github/ui/repos/row/github-repo-row";
 import { API } from "@/lib/api/endpoints";
 import { formatAbsoluteDate } from "@/lib/format/absolute-date";
 import { formatRelativeTime } from "@/lib/format/relative-time";
+import { parseGithubFullName } from "@/lib/github/commit-activity";
 import { paginate } from "@/lib/pagination/paginate";
+import { ROUTES } from "@/lib/routes";
 import gsap from "gsap";
 import { useEffect, useRef, useState } from "react";
 
@@ -19,30 +22,34 @@ export type GithubRepoListItem = {
   pushedAt: string | null;
 };
 
-/** Max 5 repos visibles — hauteur naturelle, pagination juste en dessous. */
-const REPOS_PAGE_SIZE = 5;
-
-type ActivityMap = Record<string, number[] | null>;
+export type GithubCommitActivityMap = Record<string, number[] | null>;
 
 type GithubRepoColumnProps = {
   title: string;
   repos: GithubRepoListItem[];
   emptyLabel: string;
+  initialActivity?: GithubCommitActivityMap;
 };
 
 /**
- * Colonne de repos — 5 / page, date push, sparkline page visible.
+ * Colonne de repos — 5 / page, sparklines (SSR page 1 + fetch pages suivantes).
  */
 export function GithubRepoColumn({
   title,
   repos,
   emptyLabel,
+  initialActivity = {},
 }: GithubRepoColumnProps) {
   const [page, setPage] = useState(1);
-  const [activity, setActivity] = useState<ActivityMap>({});
-  const [isActivityLoading, setIsActivityLoading] = useState(false);
+  const [fetchedActivity, setFetchedActivity] =
+    useState<GithubCommitActivityMap>({});
   const listRef = useRef<HTMLUListElement>(null);
   const isFirstRender = useRef(true);
+
+  const activity: GithubCommitActivityMap = {
+    ...initialActivity,
+    ...fetchedActivity,
+  };
 
   const {
     items,
@@ -91,7 +98,18 @@ export function GithubRepoColumn({
     let cancelled = false;
 
     void (async () => {
-      setIsActivityLoading(true);
+      const markMissingAsEmpty = () => {
+        setFetchedActivity((current) => {
+          const next = { ...current };
+          for (const name of missing) {
+            if (!(name in next)) {
+              next[name] = null;
+            }
+          }
+          return next;
+        });
+      };
+
       try {
         const response = await fetch(API.github.commitActivity, {
           method: "POST",
@@ -100,21 +118,35 @@ export function GithubRepoColumn({
         });
 
         if (!response.ok || cancelled) {
+          if (!cancelled) {
+            markMissingAsEmpty();
+          }
           return;
         }
 
         const payload = (await response.json()) as {
-          activity?: ActivityMap;
+          activity?: GithubCommitActivityMap;
         };
 
         if (!payload.activity || cancelled) {
+          if (!cancelled) {
+            markMissingAsEmpty();
+          }
           return;
         }
 
-        setActivity((current) => ({ ...current, ...payload.activity }));
-      } finally {
+        setFetchedActivity((current) => {
+          const next = { ...current, ...payload.activity };
+          for (const name of missing) {
+            if (!(name in next)) {
+              next[name] = null;
+            }
+          }
+          return next;
+        });
+      } catch {
         if (!cancelled) {
-          setIsActivityLoading(false);
+          markMissingAsEmpty();
         }
       }
     })();
@@ -169,11 +201,16 @@ export function GithubRepoColumn({
           >
             {items.map((repo) => {
               const hasActivity = repo.fullName in activity;
+              const parsed = parseGithubFullName(repo.fullName);
+              const href = parsed
+                ? ROUTES.repository(parsed.owner, parsed.repo)
+                : repo.htmlUrl;
+
               return (
                 <li key={repo.id} className="flex min-h-0 flex-1">
                   <GithubRepoRow
                     fullName={repo.fullName}
-                    htmlUrl={repo.htmlUrl}
+                    href={href}
                     createdAtLabel={
                       repo.createdAt ? formatAbsoluteDate(repo.createdAt) : null
                     }
@@ -183,7 +220,7 @@ export function GithubRepoColumn({
                         : "never"
                     }
                     weeklyCommits={hasActivity ? activity[repo.fullName] : null}
-                    isActivityLoading={isActivityLoading && !hasActivity}
+                    isActivityLoading={!hasActivity}
                   />
                 </li>
               );

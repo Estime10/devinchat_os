@@ -1,11 +1,13 @@
 import {
   GithubRepoColumn,
+  type GithubCommitActivityMap,
   type GithubRepoListItem,
 } from "@/frontend/features/02_homescreen/github/ui/repos/column/github-repo-column";
 
 type GithubReposBoardProps = {
   privateRepos: GithubRepoListItem[];
   publicRepos: GithubRepoListItem[];
+  initialActivity?: GithubCommitActivityMap;
 };
 
 /**
@@ -14,6 +16,7 @@ type GithubReposBoardProps = {
 export function GithubReposBoard({
   privateRepos,
   publicRepos,
+  initialActivity = {},
 }: GithubReposBoardProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
@@ -26,11 +29,13 @@ export function GithubReposBoard({
           title="private"
           repos={privateRepos}
           emptyLabel="No private repositories."
+          initialActivity={initialActivity}
         />
         <GithubRepoColumn
           title="public"
           repos={publicRepos}
           emptyLabel="No public repositories."
+          initialActivity={initialActivity}
         />
       </div>
     </div>

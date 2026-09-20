@@ -1,9 +1,12 @@
 import { upsertGithubConnection } from "@/backend/features/02_github/services/upsert-github-connection";
+import { githubCommitActivityCacheTag } from "@/backend/features/02_github/services/get-own-github-commit-activity";
+import { githubReposCacheTag } from "@/backend/features/02_github/services/list-own-github-repos";
 import { API } from "@/lib/api/endpoints";
 import { getGithubOAuthEnv } from "@/lib/github/env";
 import { exchangeGithubCode, fetchGithubUser } from "@/lib/github/oauth";
 import { GITHUB_OAUTH_STATE_COOKIE, ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
+import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -76,6 +79,9 @@ export async function callbackGithubController(request: Request) {
         ),
       );
     }
+
+    revalidateTag(githubReposCacheTag(user.id), "minutes");
+    revalidateTag(githubCommitActivityCacheTag(user.id), "minutes");
   } catch {
     return NextResponse.redirect(homeWithError(request, "exchange"));
   }

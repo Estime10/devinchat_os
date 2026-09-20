@@ -1,8 +1,10 @@
 import { Sparkline } from "@/frontend/components/ui/sparkline/sparkline";
+import { SparklineSkeleton } from "@/frontend/components/ui/sparkline/sparkline-skeleton";
+import Link from "next/link";
 
 type GithubRepoRowProps = {
   fullName: string;
-  htmlUrl: string;
+  href: string;
   createdAtLabel: string | null;
   pushedAtLabel: string;
   weeklyCommits: number[] | null;
@@ -10,21 +12,19 @@ type GithubRepoRowProps = {
 };
 
 /**
- * Ligne repo — remplit la hauteur allouée dans la colonne.
+ * Ligne repo — navigue vers le detail app (features).
  */
 export function GithubRepoRow({
   fullName,
-  htmlUrl,
+  href,
   createdAtLabel,
   pushedAtLabel,
   weeklyCommits,
   isActivityLoading = false,
 }: GithubRepoRowProps) {
   return (
-    <a
-      href={htmlUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={href}
       className="flex h-full w-full items-center rounded-none border-b border-glass-border/40 px-3 py-3 transition-colors hover:bg-fg-default/10"
     >
       <div className="flex w-full items-center justify-between gap-5">
@@ -44,7 +44,7 @@ export function GithubRepoRow({
             {pushedAtLabel}
           </p>
           {isActivityLoading ? (
-            <span className="font-sans text-xs text-white/30 uppercase">…</span>
+            <SparklineSkeleton />
           ) : weeklyCommits ? (
             <span className="text-fg-default">
               <Sparkline values={weeklyCommits} width={96} height={24} />
@@ -56,6 +56,6 @@ export function GithubRepoRow({
           )}
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
