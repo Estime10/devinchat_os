@@ -42,7 +42,7 @@ export async function fetchGithubCommitActivity(input: {
         "User-Agent": "devinchat-os",
         "X-GitHub-Api-Version": "2022-11-28",
       },
-      next: { revalidate: 0 },
+      cache: "no-store",
     });
 
     if (response.status === 202) {

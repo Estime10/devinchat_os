@@ -43,6 +43,7 @@ export function GithubRepoColumn({
   const [page, setPage] = useState(1);
   const [fetchedActivity, setFetchedActivity] =
     useState<GithubCommitActivityMap>({});
+  const [refreshToken, setRefreshToken] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const isFirstRender = useRef(true);
 
@@ -57,6 +58,16 @@ export function GithubRepoColumn({
     totalPages,
     totalItems,
   } = paginate(repos, page, REPOS_PAGE_SIZE);
+
+  useEffect(() => {
+    const onFocus = () => {
+      setRefreshToken((current) => current + 1);
+    };
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
 
   useEffect(() => {
     const list = listRef.current;
@@ -90,8 +101,13 @@ export function GithubRepoColumn({
       return;
     }
 
-    const missing = fullNames.filter((name) => !(name in activity));
-    if (missing.length === 0) {
+    // 1er passage : uniquement les manquants (SSR). Focus / refresh : tout recharger.
+    const targets =
+      refreshToken === 0
+        ? fullNames.filter((name) => !(name in activity))
+        : fullNames;
+
+    if (targets.length === 0) {
       return;
     }
 
@@ -101,7 +117,7 @@ export function GithubRepoColumn({
       const markMissingAsEmpty = () => {
         setFetchedActivity((current) => {
           const next = { ...current };
-          for (const name of missing) {
+          for (const name of targets) {
             if (!(name in next)) {
               next[name] = null;
             }
@@ -114,7 +130,7 @@ export function GithubRepoColumn({
         const response = await fetch(API.github.commitActivity, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullNames: missing }),
+          body: JSON.stringify({ fullNames: targets }),
         });
 
         if (!response.ok || cancelled) {
@@ -137,7 +153,7 @@ export function GithubRepoColumn({
 
         setFetchedActivity((current) => {
           const next = { ...current, ...payload.activity };
-          for (const name of missing) {
+          for (const name of targets) {
             if (!(name in next)) {
               next[name] = null;
             }
@@ -154,9 +170,9 @@ export function GithubRepoColumn({
     return () => {
       cancelled = true;
     };
-    // activity intentionnellement omis — évite refetch boucle
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- page items only
-  }, [items]);
+    // activity omis volontairement — sinon boucle après setFetchedActivity
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- items + refreshToken
+  }, [items, refreshToken]);
 
   const goToPage = (nextPage: number) => {
     const list = listRef.current;
