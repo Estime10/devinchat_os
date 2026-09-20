@@ -1,0 +1,78 @@
+/*
+  Progress bar terminal — tons de texte.
+  Usage : progress-bar-eyebrow-{tone} · progress-bar-value-{tone} · progress-bar-label-{tone}
+*/
+
+@utility progress-bar-eyebrow-on-light {
+  margin-bottom: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #000;
+
+  @media (width >= 40rem) {
+    font-size: 0.875rem;
+  }
+}
+
+@utility progress-bar-value-on-light {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.375;
+  letter-spacing: 0.025em;
+  color: #000;
+
+  @media (width >= 40rem) {
+    font-size: 1.25rem;
+  }
+
+  @media (width >= 48rem) {
+    font-size: 1.5rem;
+  }
+}
+
+@utility progress-bar-label-on-light {
+  margin-top: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: rgb(0 0 0 / 0.7);
+}
+
+@utility progress-bar-eyebrow-default {
+  margin-bottom: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+
+  @media (width >= 40rem) {
+    font-size: 0.875rem;
+  }
+}
+
+@utility progress-bar-value-default {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.375;
+  letter-spacing: 0.025em;
+  color: var(--color-fg-default);
+
+  @media (width >= 40rem) {
+    font-size: 1.25rem;
+  }
+
+  @media (width >= 48rem) {
+    font-size: 1.5rem;
+  }
+}
+
+@utility progress-bar-label-default {
+  margin-top: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-fg-muted);
+}

@@ -20,6 +20,18 @@ type BranchOrderItem = {
 };
 
 /**
+ * Même rang : push les plus récents d’abord.
+ */
+export function compareByPushRecency(
+  a: BranchOrderItem,
+  b: BranchOrderItem,
+): number {
+  const timeA = a.lastPushedAt ? Date.parse(a.lastPushedAt) : 0;
+  const timeB = b.lastPushedAt ? Date.parse(b.lastPushedAt) : 0;
+  return timeB - timeA;
+}
+
+/**
  * main/master/develop d’abord, puis push les plus récents.
  */
 export function compareByBranchPushOrder(
@@ -32,7 +44,5 @@ export function compareByBranchPushOrder(
     return rankA - rankB;
   }
 
-  const timeA = a.lastPushedAt ? Date.parse(a.lastPushedAt) : 0;
-  const timeB = b.lastPushedAt ? Date.parse(b.lastPushedAt) : 0;
-  return timeB - timeA;
+  return compareByPushRecency(a, b);
 }

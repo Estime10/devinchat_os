@@ -1,0 +1,22 @@
+/*
+  Feature card — pyramide portfolio.
+  Usage : className="feature-card"
+*/
+
+@utility feature-card {
+  box-sizing: border-box;
+  display: flex;
+  width: 12rem;
+  height: 5.5rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 0;
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-glass-border) 60%, transparent);
+  background-color: color-mix(in oklab, var(--color-glass-bg) 40%, transparent);
+  padding-inline: 0.75rem;
+  padding-block: 0.625rem;
+  backdrop-filter: blur(4px);
+}

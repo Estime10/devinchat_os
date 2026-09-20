@@ -38,10 +38,15 @@ export function Header({ displayName, github = null }: HeaderProps) {
 
     const syncHeaderHeight = () => {
       const height = header.getBoundingClientRect().height;
-      document.documentElement.style.setProperty(
-        HEADER_HEIGHT_VAR,
-        `${height}px`,
-      );
+      const next = `${height}px`;
+      // Évite d’écrire la même valeur (thrash ResizeObserver / style).
+      if (
+        document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR) ===
+        next
+      ) {
+        return;
+      }
+      document.documentElement.style.setProperty(HEADER_HEIGHT_VAR, next);
     };
 
     syncHeaderHeight();
@@ -60,7 +65,7 @@ export function Header({ displayName, github = null }: HeaderProps) {
       ref={headerRef}
       className="sticky top-0 z-50 w-full border-b border-glass-border bg-glass-bg backdrop-blur-lg"
     >
-      <div className="relative flex h-14 w-full items-center justify-between px-[var(--layout-margin-x)]">
+      <div className="relative flex h-14 w-full items-center justify-between px-layout-margin-x">
         <Link
           href={ROUTES.home}
           className="relative z-10 shrink-0 font-sans text-sm font-semibold tracking-tight text-fg-default"

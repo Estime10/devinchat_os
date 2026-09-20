@@ -1,10 +1,12 @@
 /*
-  Marges / paddings page.
-  - Header : padding horizontal (full-bleed, contenu inset — évite de le couper)
-  - Screens : padding/marge horizontal via le shell contenu
-  Usage : px-[var(--layout-margin-x)]
+  Marges page / shell contenu.
+  Usage : px-layout-margin-x
 */
 
 :root {
-  --layout-margin-x: 20px;
+  --layout-margin-x: 1.25rem;
+}
+
+@theme inline {
+  --spacing-layout-margin-x: var(--layout-margin-x);
 }

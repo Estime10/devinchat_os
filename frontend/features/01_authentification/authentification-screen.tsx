@@ -35,11 +35,11 @@ export function AuthentificationScreen() {
   }, [router]);
 
   return (
-    <main className="px-[var(--layout-margin-x)]">
+    <main className="px-layout-margin-x">
       <GlassPanel>
         <div className="flex h-full w-full">
           <section
-            className="h-full w-[70%]"
+            className="auth-split-form"
             aria-label="Authentification principale"
           >
             {mode === "register" ? (

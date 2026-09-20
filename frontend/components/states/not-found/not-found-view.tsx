@@ -18,7 +18,7 @@ export function NotFoundView({
   linkLabel = "[ back home ]",
 }: NotFoundViewProps) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-[var(--layout-margin-x)] py-10">
+    <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-layout-margin-x py-10">
       <div className="space-y-3 text-center">
         <p className="font-sans text-xs tracking-[0.2em] text-white/40 uppercase">
           {"// 404"}

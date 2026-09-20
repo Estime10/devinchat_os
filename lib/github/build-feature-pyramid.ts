@@ -1,5 +1,5 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
-import { compareByBranchPushOrder } from "@/lib/github/branch-display-order";
+import { compareByPushRecency } from "@/lib/github/branch-display-order";
 import {
   isIntegrationBranch,
   isProductionBranch,
@@ -12,15 +12,16 @@ export type FeaturePyramid = {
   production: OwnFeature | null;
 };
 
-function compareFeaturePush(a: OwnFeature, b: OwnFeature): number {
-  return compareByBranchPushOrder(
+function compareFeatureRecency(a: OwnFeature, b: OwnFeature): number {
+  return compareByPushRecency(
     { branchName: a.branchName, lastPushedAt: a.lastPushedAt },
     { branchName: b.branchName, lastPushedAt: b.lastPushedAt },
   );
 }
 
 /**
- * Pyramide : main → develop → done → in_progress (bas).
+ * Pyramide : (main | develop) → done → in_progress.
+ * Cards métier triées du plus récent au plus ancien.
  */
 export function buildFeaturePyramid(features: OwnFeature[]): FeaturePyramid {
   let production: OwnFeature | null = null;
@@ -50,10 +51,10 @@ export function buildFeaturePyramid(features: OwnFeature[]): FeaturePyramid {
 
   const done = others
     .filter((feature) => feature.status === "done")
-    .sort(compareFeaturePush);
+    .sort(compareFeatureRecency);
   const inProgress = others
     .filter((feature) => feature.status !== "done")
-    .sort(compareFeaturePush);
+    .sort(compareFeatureRecency);
 
   return { done, inProgress, develop, production };
 }

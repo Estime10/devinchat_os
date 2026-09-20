@@ -103,7 +103,7 @@ export function AuthQuotesPanel({
 
   return (
     <section
-      className="relative z-0 flex h-full w-[30%] flex-col justify-center border-l border-glass-border bg-fg-default/55 px-5 py-8 sm:px-6"
+      className="auth-split-quotes"
       aria-label="Authentification secondaire"
       aria-live="polite"
     >
@@ -115,12 +115,10 @@ export function AuthQuotesPanel({
         />
       ) : (
         <div className="relative z-10">
-          <p className="mb-4 font-sans text-xs tracking-[0.25em] text-black uppercase sm:text-sm">
-            {"// stream"}
-          </p>
+          <p className="progress-bar-eyebrow-on-light">{"// stream"}</p>
           <p
             ref={textRef}
-            className="min-h-[8rem] font-sans text-lg leading-snug font-medium text-black sm:text-xl md:text-2xl"
+            className="progress-bar-value-on-light min-h-[8rem]"
           />
           <span
             ref={cursorRef}

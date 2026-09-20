@@ -1,4 +1,10 @@
 @import "tailwindcss";
+
+/* theme = tokens globaux · layout = shell · ui = une surface / fichier */
 @import "../lib/styles/theme/theme.css";
 @import "../lib/styles/layout/header.css";
 @import "../lib/styles/layout/page.css";
+@import "../lib/styles/ui/feature-card.css";
+@import "../lib/styles/ui/glass-panel.css";
+@import "../lib/styles/ui/progress-bar.css";
+@import "../lib/styles/ui/auth-split.css";

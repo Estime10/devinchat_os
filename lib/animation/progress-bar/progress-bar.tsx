@@ -23,21 +23,19 @@ export type ProgressBarProps = {
   tone?: ProgressBarTone;
 };
 
-const TONE_CLASSES: Record<
+const TONE_CLASSNAMES: Record<
   ProgressBarTone,
   { eyebrow: string; bar: string; label: string }
 > = {
   "on-light": {
-    eyebrow:
-      "mb-4 font-sans text-xs tracking-[0.25em] text-black uppercase sm:text-sm",
-    bar: "font-sans text-lg leading-snug font-medium tracking-wide text-black sm:text-xl md:text-2xl",
-    label: "mt-4 font-sans text-sm text-black/70",
+    eyebrow: "progress-bar-eyebrow-on-light",
+    bar: "progress-bar-value-on-light",
+    label: "progress-bar-label-on-light",
   },
   default: {
-    eyebrow:
-      "mb-4 font-sans text-xs tracking-[0.25em] text-fg-muted uppercase sm:text-sm",
-    bar: "font-sans text-lg leading-snug font-medium tracking-wide text-fg-default sm:text-xl md:text-2xl",
-    label: "mt-4 font-sans text-sm text-fg-muted",
+    eyebrow: "progress-bar-eyebrow-default",
+    bar: "progress-bar-value-default",
+    label: "progress-bar-label-default",
   },
 };
 
@@ -68,7 +66,7 @@ export function ProgressBar({
   const percentRef = useRef(0);
   const completedRef = useRef(false);
   const isFinished = isComplete && Math.round(percent) >= 100;
-  const tones = TONE_CLASSES[tone];
+  const tones = TONE_CLASSNAMES[tone];
 
   useEffect(() => {
     percentRef.current = percent;

@@ -17,21 +17,13 @@ function PyramidCard({ feature }: { feature: OwnFeature }) {
   );
 }
 
-function PyramidTier({
-  features,
-  maxWidthClass,
-}: {
-  features: OwnFeature[];
-  maxWidthClass: string;
-}) {
+function PyramidTier({ features }: { features: OwnFeature[] }) {
   if (features.length === 0) {
     return null;
   }
 
   return (
-    <div
-      className={`mx-auto flex w-full ${maxWidthClass} flex-wrap justify-center gap-3`}
-    >
+    <div className="mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-3">
       {features.map((feature) => (
         <PyramidCard key={feature.id} feature={feature} />
       ))}
@@ -40,23 +32,24 @@ function PyramidTier({
 }
 
 /**
- * Pyramide de cards — présentation pure (données déjà groupées).
+ * Pyramide — main + develop sur une ligne, puis done, puis in progress.
  */
 export function FeaturePyramid({ pyramid }: FeaturePyramidProps) {
+  const spine = [pyramid.production, pyramid.develop].filter(
+    (feature): feature is OwnFeature => feature !== null,
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col items-stretch gap-6 overflow-auto pb-6">
-      {pyramid.production ? (
-        <div className="mx-auto flex justify-center">
-          <PyramidCard feature={pyramid.production} />
+      {spine.length > 0 ? (
+        <div className="mx-auto flex flex-wrap justify-center gap-3">
+          {spine.map((feature) => (
+            <PyramidCard key={feature.id} feature={feature} />
+          ))}
         </div>
       ) : null}
-      {pyramid.develop ? (
-        <div className="mx-auto flex justify-center">
-          <PyramidCard feature={pyramid.develop} />
-        </div>
-      ) : null}
-      <PyramidTier features={pyramid.done} maxWidthClass="max-w-5xl" />
-      <PyramidTier features={pyramid.inProgress} maxWidthClass="max-w-3xl" />
+      <PyramidTier features={pyramid.done} />
+      <PyramidTier features={pyramid.inProgress} />
     </div>
   );
 }

@@ -47,7 +47,7 @@ describe("resolveMergedIntoBranch", () => {
 });
 
 describe("buildFeaturePyramid", () => {
-  it("sépare main / develop / done / in_progress", () => {
+  it("sépare main / develop / done / in_progress (récent → ancien)", () => {
     const features: OwnFeature[] = [
       {
         id: "1",
