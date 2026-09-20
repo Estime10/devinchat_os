@@ -1,8 +1,12 @@
 import { isGithubConnectionActive } from "@/backend/features/02_github/domain/is-github-connection-active";
 import { getOwnGithubRepo } from "@/backend/features/02_github/services/get-own-github-repo";
 import { getOwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection";
+import { loadOwnRepositoryFeatures } from "@/backend/features/04_features/services/load-own-repository-features";
 import { SuspenseStream } from "@/frontend/components/async/suspense-stream";
-import { Skeleton } from "@/frontend/components/layout/skeleton/skeleton";
+import {
+  RepositoryBoot,
+  RepositoryBootReady,
+} from "@/frontend/features/03_repository/ui/boot/repository-boot";
 import { RepositoryScreen } from "@/frontend/features/03_repository/repository-screen";
 import { ROUTES } from "@/lib/routes";
 import { notFound, redirect } from "next/navigation";
@@ -12,14 +16,15 @@ type RepositoryPageProps = {
 };
 
 /**
- * Portfolio /repository/[owner]/[repo]
- * Shell repo (liste cachée) → Suspense features (sync caché 60s).
+ * Portfolio — une barre de boot centrée jusqu’à data complètes.
  */
 export default function RepositoryPage({ params }: RepositoryPageProps) {
   return (
-    <SuspenseStream fallback={<Skeleton variant="repository-page" />}>
-      <RepositoryContent params={params} />
-    </SuspenseStream>
+    <RepositoryBoot>
+      <SuspenseStream fallback={null}>
+        <RepositoryContent params={params} />
+      </SuspenseStream>
+    </RepositoryBoot>
   );
 }
 
@@ -44,5 +49,12 @@ async function RepositoryContent({ params }: RepositoryPageProps) {
     notFound();
   }
 
-  return <RepositoryScreen repo={result.repo} />;
+  const features = await loadOwnRepositoryFeatures(owner, repo);
+
+  return (
+    <>
+      <RepositoryBootReady />
+      <RepositoryScreen repo={result.repo} features={features} />
+    </>
+  );
 }
