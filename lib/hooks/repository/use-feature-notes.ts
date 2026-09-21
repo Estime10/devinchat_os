@@ -4,6 +4,7 @@ import {
   areEditorAttachmentsEqual,
   createNoteAttachmentId,
   isPersistedEditorAttachment,
+  removeNoteAttachmentRefFromBlocks,
   toEditorNoteAttachment,
   type EditorNoteAttachment,
   type NoteAttachment,
@@ -167,8 +168,8 @@ export function useFeatureNotes(featureId: string | null): {
     draft: FeatureNoteDraft,
     previousAttachments: readonly EditorNoteAttachment[],
   ) => {
+    // Révoque seulement les blob URLs affichés — les File restent en mémoire live.
     revokeEditorAttachmentUrls(previousAttachments);
-    clearLivePendingAttachmentFiles(pendingIds(previousAttachments));
     restorePendingAttachmentFiles(draft.pendingFiles);
     setActiveNoteId(draft.activeNoteId);
     setBlocksState(cloneBlocks(draft.blocks));
@@ -179,9 +180,12 @@ export function useFeatureNotes(featureId: string | null): {
 
   const applyEmptyEditor = (
     previousAttachments: readonly EditorNoteAttachment[],
+    options?: { discardPendingFiles?: boolean },
   ) => {
     revokeEditorAttachmentUrls(previousAttachments);
-    clearLivePendingAttachmentFiles(pendingIds(previousAttachments));
+    if (options?.discardPendingFiles) {
+      clearLivePendingAttachmentFiles(pendingIds(previousAttachments));
+    }
     const nextEmpty = createEmptyNoteDocument();
     setActiveNoteId(null);
     setBlocksState(nextEmpty);
@@ -334,7 +338,6 @@ export function useFeatureNotes(featureId: string | null): {
       return;
     }
     revokeEditorAttachmentUrls(attachments);
-    clearLivePendingAttachmentFiles(pendingIds(attachments));
     const nextBlocks =
       note.blocks.length > 0 ? note.blocks : createEmptyNoteDocument();
     const nextAttachments = note.attachments.map(toEditorNoteAttachment);
@@ -479,7 +482,7 @@ export function useFeatureNotes(featureId: string | null): {
       }
       clearFeatureNoteDraft(id, noteId);
       rememberFeatureEditorNote(id, null);
-      applyEmptyEditor(attachmentsRef.current);
+      applyEmptyEditor(attachmentsRef.current, { discardPendingFiles: true });
       const refreshed = await listOwnFeatureNotesAction(id);
       if (refreshed === null) {
         setNotes((prev) => prev.filter((note) => note.id !== noteId));
@@ -533,6 +536,9 @@ export function useFeatureNotes(featureId: string | null): {
     unregisterPendingAttachmentFile(attachmentId);
     setAttachments((current) =>
       current.filter((item) => item.id !== attachmentId),
+    );
+    setBlocks(
+      removeNoteAttachmentRefFromBlocks(blocksRef.current, target.label),
     );
   };
 

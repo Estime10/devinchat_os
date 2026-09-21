@@ -93,6 +93,29 @@
   gap: 0.25rem;
 }
 
+@utility note-editor-attachment-anchor {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: center;
+  transition: opacity 120ms ease;
+}
+
+.note-editor-attachment-anchor:hover {
+  opacity: 0.85;
+}
+
+.note-editor-attachment-anchor:focus-visible {
+  outline: 1px solid var(--color-fg-default);
+  outline-offset: 2px;
+}
+
 @utility note-editor-attachment-image {
   display: block;
   width: 4.5rem;
@@ -203,6 +226,11 @@
   font-weight: 600;
   font-style: italic;
   color: rgb(255 255 255 / 0.85);
+}
+
+.note-block--attachment-ref:target .note-block-content,
+.note-block--attachment-ref:focus-within .note-block-content {
+  color: var(--color-fg-default);
 }
 
 .note-block--bullet::before,

@@ -123,3 +123,28 @@ export function nextNoteAttachmentLabel(
 export function isNoteAttachmentRefText(text: string): boolean {
   return ATTACHMENT_REF_PATTERN.test(text.trim());
 }
+
+/**
+ * Retire les blocs qui ne sont que la ref `label` (ex. image1).
+ * Ne touche pas au texte qui contient la ref au milieu d’une phrase.
+ */
+export function removeNoteAttachmentRefFromBlocks<T extends { text: string }>(
+  blocks: readonly T[],
+  label: string,
+): T[] {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized || !isNoteAttachmentRefText(normalized)) {
+    return [...blocks];
+  }
+  return blocks.filter((block) => {
+    if (!isNoteAttachmentRefText(block.text)) {
+      return true;
+    }
+    return block.text.trim().toLowerCase() !== normalized;
+  });
+}
+
+/** Id DOM ancre — clic vignette → scroll jusqu’à la ref dans le texte. */
+export function noteAttachmentRefElementId(label: string): string {
+  return `note-attachment-ref-${label.trim().toLowerCase()}`;
+}

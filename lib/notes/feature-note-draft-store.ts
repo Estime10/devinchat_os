@@ -273,15 +273,20 @@ export function rememberFeatureEditorNote(
   writeLastEditor(featureId, noteId);
 }
 
+/** Fichiers image pending (hors React render) — survivent aux changements de feature. */
+const livePendingFiles = new Map<string, File>();
+
 function hydratePendingUrls(draft: FeatureNoteDraft): FeatureNoteDraft {
   draft.attachments = draft.attachments.flatMap((item) => {
     if (isPersistedEditorAttachment(item)) {
       return [item];
     }
-    const file = draft.pendingFiles.get(item.id);
+    const file =
+      draft.pendingFiles.get(item.id) ?? livePendingFiles.get(item.id);
     if (!file) {
       return [];
     }
+    draft.pendingFiles.set(item.id, file);
     return [
       {
         ...item,
@@ -294,9 +299,6 @@ function hydratePendingUrls(draft: FeatureNoteDraft): FeatureNoteDraft {
   });
   return draft;
 }
-
-/** Fichiers image pending (hors React render) — survivent aux changements de feature. */
-const livePendingFiles = new Map<string, File>();
 
 export function registerPendingAttachmentFile(id: string, file: File): void {
   livePendingFiles.set(id, file);

@@ -12,6 +12,7 @@ export type UpsertGithubConnectionInput = {
 
 /**
  * Upsert connexion GitHub — credentials chiffrés avant écriture.
+ * Écriture via RPC (colonnes ciphertext interdites au SELECT/RETURNING JWT).
  */
 export async function upsertGithubConnection(
   input: UpsertGithubConnectionInput,
@@ -29,20 +30,22 @@ export async function upsertGithubConnection(
     .filter(Boolean);
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("github_connections").upsert(
-    {
-      user_id: input.userId,
-      github_user_id: input.githubUserId,
-      github_login: input.githubLogin,
-      status: "active",
-      credentials_ciphertext: encrypted.ciphertext,
-      credentials_nonce: encrypted.nonce,
-      scopes,
-      expires_at: null,
-    },
-    { onConflict: "user_id" },
-  );
+  if (!user || user.id !== input.userId) {
+    return { ok: false, reason: "persist" };
+  }
+
+  const { error } = await supabase.rpc("upsert_own_github_connection", {
+    p_github_user_id: input.githubUserId,
+    p_github_login: input.githubLogin,
+    p_credentials_ciphertext: encrypted.ciphertext,
+    p_credentials_nonce: encrypted.nonce,
+    p_scopes: scopes,
+    p_expires_at: null,
+  });
 
   if (!error) {
     return { ok: true };

@@ -4,6 +4,7 @@ import { Heading, List, ListOrdered, Paperclip, Type, X } from "lucide-react";
 import {
   isNoteAttachmentRefText,
   nextNoteAttachmentLabel,
+  noteAttachmentRefElementId,
   NOTE_ATTACHMENT_INPUT_MIME_TYPES,
   type EditorNoteAttachment,
 } from "@/backend/features/04_features/domain/note-attachment";
@@ -33,6 +34,16 @@ const FORMAT_ICONS: Record<NoteBlockType, LucideIcon> = {
   bullet: List,
   numbered: ListOrdered,
 };
+
+function scrollToAttachmentRef(label: string): void {
+  const target = document.getElementById(noteAttachmentRefElementId(label));
+  if (!target) {
+    return;
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  const editable = target.querySelector<HTMLElement>(".note-block-content");
+  editable?.focus();
+}
 
 /**
  * Présentation éditeur notes — texte + pièces jointes.
@@ -134,13 +145,25 @@ export function NoteEditor({
         <ul className="note-editor-attachments">
           {attachments.map((item) => (
             <li key={item.id} className="note-editor-attachment">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.url}
-                alt={item.label}
-                className="note-editor-attachment-image"
-              />
-              <span className="note-editor-attachment-label">{item.label}</span>
+              <button
+                type="button"
+                className="note-editor-attachment-anchor"
+                title={`Go to ${item.label}`}
+                aria-label={`Go to ${item.label} in note`}
+                onClick={() => {
+                  scrollToAttachmentRef(item.label);
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.url}
+                  alt=""
+                  className="note-editor-attachment-image"
+                />
+                <span className="note-editor-attachment-label">
+                  {item.label}
+                </span>
+              </button>
               <button
                 type="button"
                 className="note-editor-attachment-remove"
@@ -164,6 +187,11 @@ export function NoteEditor({
           return (
             <div
               key={block.id}
+              id={
+                isAttachmentRef
+                  ? noteAttachmentRefElementId(block.text.trim())
+                  : undefined
+              }
               className={`note-block note-block--${block.type}${
                 isAttachmentRef ? " note-block--attachment-ref" : ""
               }`}
