@@ -28,7 +28,7 @@ function OpenForestTier({
       </p>
       <div className="feature-tree-open-forest">
         {forest.map((node) => (
-          <div key={node.feature.id} className="feature-tree-root">
+          <div key={node.feature.id} className="feature-tree-open-root">
             <FeatureTreeNodeView
               node={node}
               selectedFeatureId={selectedFeatureId}
