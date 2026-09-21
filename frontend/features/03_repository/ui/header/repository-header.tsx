@@ -23,7 +23,7 @@ export function RepositoryHeader({ repo }: RepositoryHeaderProps) {
       >
         [ back ]
       </Link>
-      <h1 className="font-sans text-xl font-semibold tracking-tight text-fg-default">
+      <h1 className="font-sans text-xl font-semibold tracking-tight text-white">
         {repo.fullName}
       </h1>
       <p className="font-sans text-sm text-white/50 uppercase">

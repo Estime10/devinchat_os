@@ -6,7 +6,8 @@ type RepositoryFeatureRowProps = {
 };
 
 /**
- * Carte feature — styles dans lib/styles/ui/feature-card.css.
+ * Carte feature — même échelle typo homescreen :
+ * identité white · meta white/50 · chrome fg-default · tertiaire white/30.
  */
 export function RepositoryFeatureRow({
   name,
@@ -16,17 +17,17 @@ export function RepositoryFeatureRow({
 }: RepositoryFeatureRowProps) {
   return (
     <div className="feature-card">
-      <p className="truncate font-sans text-sm font-semibold leading-snug text-fg-default">
+      <p className="truncate font-sans text-sm leading-snug text-white">
         {name}
       </p>
-      <p className="truncate font-sans text-xs leading-snug text-fg-muted">
+      <p className="truncate font-sans text-xs leading-snug text-white/50">
         {branchName.length > 0 ? branchName : "branch deleted"}
       </p>
       <p className="mt-1 font-sans text-[10px] tracking-wide text-fg-default uppercase">
         {status.replaceAll("_", " ")}
       </p>
       {mergedInto ? (
-        <p className="mt-0.5 truncate font-sans text-[10px] tracking-wide text-fg-muted">
+        <p className="mt-0.5 truncate font-sans text-[10px] tracking-wide text-white/30">
           merged into {mergedInto}
         </p>
       ) : null}

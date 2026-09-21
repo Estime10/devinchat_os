@@ -9,7 +9,7 @@ type RepositoryScreenProps = {
 };
 
 /**
- * Screen repository — orchestre header + features (déjà chargées).
+ * Screen repository — orchestre header + arbre de branches.
  */
 export function RepositoryScreen({ repo, features }: RepositoryScreenProps) {
   return (

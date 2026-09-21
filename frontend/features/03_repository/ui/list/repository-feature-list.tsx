@@ -1,15 +1,15 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
 import { StateError } from "@/frontend/components/states/error/state-error";
-import { FeaturePyramid } from "@/frontend/features/03_repository/ui/pyramid/feature-pyramid";
-import { buildFeaturePyramid } from "@/lib/github/build-feature-pyramid";
+import { FeatureTree } from "@/frontend/features/03_repository/ui/tree/feature-tree";
+import { buildFeatureTree } from "@/lib/github/build-feature-tree";
 
 type RepositoryFeatureListProps = {
   features: OwnFeature[] | null;
 };
 
 /**
- * Features du repo — états + composition pyramide.
+ * Features du repo — états + arbre généalogique.
  */
 export function RepositoryFeatureList({
   features,
@@ -24,5 +24,5 @@ export function RepositoryFeatureList({
     return <StateEmpty>No branches found for this repository.</StateEmpty>;
   }
 
-  return <FeaturePyramid pyramid={buildFeaturePyramid(features)} />;
+  return <FeatureTree tree={buildFeatureTree(features)} />;
 }

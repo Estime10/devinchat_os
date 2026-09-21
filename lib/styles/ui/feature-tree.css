@@ -1,0 +1,111 @@
+/*
+  Arbre généalogique features — connecteurs type org-chart.
+  Usage : feature-tree / feature-tree-stem / feature-tree-children / feature-tree-child
+*/
+
+@utility feature-tree {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2rem;
+  overflow: auto;
+  padding-bottom: 1.5rem;
+}
+
+@utility feature-tree-root {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  flex-direction: column;
+  align-items: center;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@utility feature-tree-stem {
+  width: 1px;
+  height: 1.25rem;
+  flex-shrink: 0;
+  background-color: color-mix(
+    in oklab,
+    var(--color-glass-border) 80%,
+    transparent
+  );
+}
+
+@utility feature-tree-children {
+  display: flex;
+  position: relative;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 1.25rem;
+  gap: 1.25rem;
+}
+
+@utility feature-tree-children-solo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@utility feature-tree-unattached {
+  display: flex;
+  width: 100%;
+  max-width: 72rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-inline: auto;
+}
+
+.feature-tree-child {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Rail horizontal (tronqué sur premier / dernier) */
+.feature-tree-child::before {
+  content: "";
+  position: absolute;
+  top: -1.25rem;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background-color: color-mix(
+    in oklab,
+    var(--color-glass-border) 80%,
+    transparent
+  );
+}
+
+/* Stem vertical rail → card */
+.feature-tree-child::after {
+  content: "";
+  position: absolute;
+  top: -1.25rem;
+  left: 50%;
+  width: 1px;
+  height: 1.25rem;
+  background-color: color-mix(
+    in oklab,
+    var(--color-glass-border) 80%,
+    transparent
+  );
+  transform: translateX(-50%);
+}
+
+.feature-tree-child:first-child::before {
+  left: 50%;
+}
+
+.feature-tree-child:last-child::before {
+  right: 50%;
+}
+
+.feature-tree-child:only-child::before {
+  display: none;
+}
