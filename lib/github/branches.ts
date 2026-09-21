@@ -1,3 +1,5 @@
+import { githubApiGet } from "@/lib/github/api-get";
+
 export type GithubBranch = {
   name: string;
   protected: boolean;
@@ -42,13 +44,9 @@ async function fetchBranchLastPushedAt(input: {
 }): Promise<string | null> {
   const url = `https://api.github.com/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/branches/${encodeURIComponent(input.branch)}`;
 
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${input.accessToken}`,
-      "User-Agent": "devinchat-os",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+  const response = await githubApiGet({
+    accessToken: input.accessToken,
+    url,
     next: {
       revalidate: 60,
       tags: ["github-branch-detail-fetch"],
@@ -91,13 +89,9 @@ export async function fetchGithubBranches(
     url.searchParams.set("per_page", String(perPage));
     url.searchParams.set("page", String(page));
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${accessToken}`,
-        "User-Agent": "devinchat-os",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+    const response = await githubApiGet({
+      accessToken,
+      url,
       next: {
         revalidate: 60,
         tags: ["github-branches-fetch"],

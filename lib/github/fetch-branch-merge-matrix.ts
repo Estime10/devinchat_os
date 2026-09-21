@@ -1,7 +1,8 @@
 import { fetchIsBranchMergedInto } from "@/lib/github/is-branch-merged-into";
+import { listTrunkMergeComparePairs } from "@/lib/github/list-trunk-merge-compare-pairs";
 
 /**
- * Matrice base←head (head mergé dans base) — lots parallèles.
+ * Matrice base←head limitée aux trunks (develop / main|master) — O(N) compares.
  */
 export async function fetchBranchMergeMatrix(input: {
   accessToken: string;
@@ -12,17 +13,7 @@ export async function fetchBranchMergeMatrix(input: {
 }): Promise<Map<string, boolean>> {
   const { accessToken, owner, repo, branchNames } = input;
   const concurrency = input.concurrency ?? 6;
-  const pairs: Array<{ base: string; head: string; key: string }> = [];
-
-  for (const base of branchNames) {
-    for (const head of branchNames) {
-      if (base === head) {
-        continue;
-      }
-      pairs.push({ base, head, key: `${base}\0${head}` });
-    }
-  }
-
+  const pairs = listTrunkMergeComparePairs(branchNames);
   const results = new Map<string, boolean>();
 
   for (let index = 0; index < pairs.length; index += concurrency) {

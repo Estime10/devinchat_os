@@ -249,7 +249,7 @@ UNIQUE (github_user_id)       -- un compte GitHub lié à au plus un user app
 
 > Si on autorise plus tard plusieurs connexions (orgs), retirer `UNIQUE (user_id)`.
 
-**Sécurité :** cette table ne doit **jamais** être lue côté client avec les colonnes credentials. L’API mappe un DTO sans secrets. Détail → `05_SECURITY_MODEL`.
+**Sécurité :** les colonnes `credentials_ciphertext` / `credentials_nonce` ne sont **pas** SELECT-ables par le rôle `authenticated`. Lecture uniquement via RPC `get_own_github_credentials()` (SECURITY DEFINER, scoped `auth.uid()`). L’API mappe un DTO sans secrets. Détail → `05_SECURITY_MODEL`.
 
 ---
 

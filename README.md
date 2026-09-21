@@ -30,6 +30,7 @@ Variables utiles (serveur) : voir `doc/04_PREPROD_CHECKLIST.md` (Supabase + GitH
 
 ```bash
 pnpm lint
+pnpm typecheck
 pnpm test:run
 pnpm build
 ```

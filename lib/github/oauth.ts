@@ -1,4 +1,5 @@
 import { GITHUB_OAUTH_SCOPES } from "@/lib/github/env";
+import { githubApiGet } from "@/lib/github/api-get";
 
 const AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
 const TOKEN_URL = "https://github.com/login/oauth/access_token";
@@ -73,13 +74,9 @@ export type GithubUser = {
 export async function fetchGithubUser(
   accessToken: string,
 ): Promise<GithubUser> {
-  const response = await fetch(USER_URL, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${accessToken}`,
-      "User-Agent": "devinchat-os",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+  const response = await githubApiGet({
+    accessToken,
+    url: USER_URL,
   });
 
   if (!response.ok) {

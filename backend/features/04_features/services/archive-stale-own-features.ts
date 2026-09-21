@@ -1,7 +1,10 @@
+import { resolveStaleFeatureUpdate } from "@/backend/features/04_features/domain/resolve-stale-feature-update";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Archive les features dont la branche a disparu sur GitHub.
+ * Branche disparue sur GitHub :
+ * - done → conserve le status (historique pyramide), branch_name = null
+ * - sinon → archived
  */
 export async function archiveStaleOwnFeatures(input: {
   projectId: string;
@@ -11,7 +14,7 @@ export async function archiveStaleOwnFeatures(input: {
 
   const { data: rows, error } = await supabase
     .from("features")
-    .select("id, branch_name, manual_override")
+    .select("id, branch_name, status, manual_override")
     .eq("project_id", input.projectId);
 
   if (error || !rows) {
@@ -22,13 +25,18 @@ export async function archiveStaleOwnFeatures(input: {
     if (!row.branch_name || input.activeBranchNames.has(row.branch_name)) {
       continue;
     }
-    if (row.manual_override) {
+
+    const update = resolveStaleFeatureUpdate({
+      status: row.status,
+      manualOverride: row.manual_override === true,
+    });
+    if (!update) {
       continue;
     }
 
     const { error: updateError } = await supabase
       .from("features")
-      .update({ branch_name: null, status: "archived" })
+      .update(update)
       .eq("id", row.id);
 
     if (updateError) {

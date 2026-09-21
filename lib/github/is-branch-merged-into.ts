@@ -1,7 +1,4 @@
-type GithubComparePayload = {
-  ahead_by?: number;
-  status?: string;
-};
+import { githubApiGet } from "@/lib/github/api-get";
 
 /**
  * True si head n’a aucun commit hors de base (contenu dans base = mergé).
@@ -9,6 +6,11 @@ type GithubComparePayload = {
 export function isHeadMergedIntoBase(aheadBy: number): boolean {
   return aheadBy <= 0;
 }
+
+type GithubComparePayload = {
+  ahead_by?: number;
+  status?: string;
+};
 
 /**
  * Compare GitHub `base...head` — null si base absente / erreur.
@@ -22,13 +24,9 @@ export async function fetchIsBranchMergedInto(input: {
 }): Promise<boolean | null> {
   const url = `https://api.github.com/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/compare/${encodeURIComponent(input.base)}...${encodeURIComponent(input.head)}`;
 
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${input.accessToken}`,
-      "User-Agent": "devinchat-os",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+  const response = await githubApiGet({
+    accessToken: input.accessToken,
+    url,
     next: {
       revalidate: 60,
       tags: ["github-compare-fetch"],

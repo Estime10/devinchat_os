@@ -4,26 +4,70 @@
 | --- | --- |
 | **Type de document** | `01_PRD` — Product Requirements Document |
 | **Produit** | Developer Progress OS (`devinchat_os`) |
-| **Version document** | 1.0 |
-| **Statut** | Source of truth — pré-implémentation |
+| **Version document** | 1.1 |
+| **Statut** | Source of truth — V1 = pyramide (gel partiel TDD) |
 | **Documents associés** | [`02_TDD.md`](./02_TDD.md) · [`03_DATABASE_DESIGN.md`](./03_DATABASE_DESIGN.md) |
 | **Audience** | Founder / CEO agents / agents spécialisés (architecture, produit, GitHub, UX) |
 | **Stack cible** | Next.js (App Router) · TypeScript strict · Tailwind · Supabase · GitHub API |
-| **Horizon** | V1 — miroir d’activité de développement personnelle |
+| **Horizon** | V1 — miroir Git → pyramide de branches |
 | **Séquence docs** | `01_PRD` → `02_TDD` → `03_DATABASE_DESIGN` → `04_API_CONTRACT` → `05_SECURITY_MODEL` → `06_IMPLEMENTATION` |
+
+---
+
+## V1 = pyramide (cadrage actif)
+
+> **Lire cette section avant le reste du PRD.**  
+> Le document historique ci-dessous décrit l’OS complet. **La V1 livrée / à stabiliser n’est pas cet OS.**
+
+### Ce que V1 *est*
+
+Un **miroir d’activité Git** :
+
+1. Auth Supabase (email / password)
+2. Homescreen GitHub (OAuth + liste repos + activité commits)
+3. Page repository → **pyramide de branches** :
+   - trunks : `main` / `master` + `develop`
+   - `done` (mergé dans develop ou production)
+   - `in_progress` (reste)
+4. Sync on-demand à l’ouverture (pas de webhooks)
+5. Tokens GitHub chiffrés server-side ; credentials **non lisibles** via SELECT JWT
+6. Compares GitHub **O(N)** (bases trunk seulement)
+7. Features `done` **conservées** si GitHub efface la branche (`branch_name = null`)
+8. Appels GitHub API **GET only** (`githubApiGet`) — le scope OAuth `repo` reste requis pour les privés (limitation OAuth App ; GitHub App = hors V1)
+
+### Ce que V1 *n’est pas* (gelé — ne pas implémenter)
+
+| Hors V1 pyramide | Où c’était décrit | Statut |
+| --- | --- | --- |
+| Machine d’états `planned → … → done` + % progress | §5 Progress model | Gelé |
+| `activity_events` / timeline | DB design + TDD | Gelé |
+| Webhooks GitHub | TDD §23 | Gelé |
+| TanStack Query | TDD §11 | Gelé — RSC + cache suffisent |
+| Sélection persistée de repos suivis | §6 Scope | Gelé |
+| Command center, overrides manuels UI | TDD | Gelé |
+
+Le TDD (~2000 lignes) reste une **carte d’exploration**, pas une checklist d’implémentation. Toute reprise d’un item gelé exige une mise à jour explicite de **cette** section V1.
+
+### Invariants techniques V1
+
+1. Compares GitHub **O(N)** : uniquement `develop` / `main|master` comme bases — jamais N² entre toutes les branches.
+2. Pas d’analyse de code / clone.
+3. Server-first ; pas de credentials dans le bundle client.
+4. API GitHub : GET only côté app. Scope `repo` = contrainte OAuth App classique pour lire le privé (pas de scope lecture-seule équivalent).
+5. Branche GitHub effacée : `done` reste `done` (sans branche) ; le reste → `archived`.
 
 ---
 
 ## 0. Comment lire ce document
 
-Ce PRD est le **document source**. Toute décision produit, toute story, toute contrainte d’implémentation doit pouvoir être tracée ici.
+Ce PRD est le **document source**. Pour le scope *courant*, la section **V1 = pyramide** prime. Le reste du document conserve la vision long terme.
 
 Règles de gouvernance :
 
-1. Le cœur du produit est figé tant que ce document ne l’autorise pas explicitement.
-2. Les idées hors scope vont dans **§8 Future Exploration** — capturées, non implémentées.
+1. Le cœur V1 (pyramide) est figé tant que la section V1 ne l’autorise pas explicitement.
+2. Les idées hors V1 pyramide vont dans **§8 Future Exploration** — capturées, non implémentées.
 3. Le code n’est **jamais** dans le périmètre d’analyse. Le produit observe l’*activité* GitHub, pas le contenu des fichiers.
-4. Une branche = une feature (relation native). C’est un invariant V1.
+4. Une branche = une entrée de pyramide (relation native). Convention `feature/*` = cible produit ; le miroir V1 peut lister d’autres branches tant que les trunks restent lisibles.
 
 ---
 
@@ -453,4 +497,5 @@ Toute idée de cette section qui menace le cœur « miroir d’activité, zero c
 
 | Version | Date | Changement |
 | --- | --- | --- |
+| 1.1 | 2026-09-21 | Section **V1 = pyramide** en tête — gel webhooks / TanStack / progress % / activity_events |
 | 1.0 | 2026-09-18 | Création PRD source — Vision, Problem, Core concept, GitHub, Progress, Scope V1, Future Exploration |

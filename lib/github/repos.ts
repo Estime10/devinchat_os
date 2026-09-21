@@ -1,3 +1,4 @@
+import { githubApiGet } from "@/lib/github/api-get";
 import { GithubUnauthorizedError } from "@/lib/github/github-unauthorized-error";
 
 export type GithubRepo = {
@@ -50,13 +51,6 @@ function mapGithubRepo(item: GithubRepoApiItem): GithubRepo | null {
   };
 }
 
-const githubApiHeaders = (accessToken: string) => ({
-  Accept: "application/vnd.github+json",
-  Authorization: `Bearer ${accessToken}`,
-  "User-Agent": "devinchat-os",
-  "X-GitHub-Api-Version": "2022-11-28",
-});
-
 /**
  * Liste les repos accessibles du user authentifié (paginé).
  * @throws {GithubUnauthorizedError} token rejeté (401)
@@ -78,8 +72,9 @@ export async function fetchGithubRepos(
     );
     url.searchParams.set("sort", "updated");
 
-    const response = await fetch(url, {
-      headers: githubApiHeaders(accessToken),
+    const response = await githubApiGet({
+      accessToken,
+      url,
       cache: "no-store",
     });
 
@@ -129,8 +124,9 @@ export async function fetchGithubRepo(
 ): Promise<FetchGithubRepoResult> {
   const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 
-  const response = await fetch(url, {
-    headers: githubApiHeaders(accessToken),
+  const response = await githubApiGet({
+    accessToken,
+    url,
     cache: "no-store",
   });
 

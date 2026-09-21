@@ -100,4 +100,33 @@ describe("buildFeaturePyramid", () => {
     expect(pyramid.develop?.branchName).toBe("develop");
     expect(pyramid.production?.branchName).toBe("main");
   });
+
+  it("garde les done sans branche (effacée sur GitHub)", () => {
+    const features: OwnFeature[] = [
+      {
+        id: "1",
+        name: "Shipped Auth",
+        branchName: null,
+        parentBranchName: "develop",
+        status: "done",
+        lastPushedAt: "2026-01-02T00:00:00Z",
+      },
+      {
+        id: "2",
+        name: "WIP",
+        branchName: "feature/wip",
+        parentBranchName: null,
+        status: "in_progress",
+        lastPushedAt: "2026-01-03T00:00:00Z",
+      },
+    ];
+
+    const pyramid = buildFeaturePyramid(features);
+    expect(pyramid.done).toHaveLength(1);
+    expect(pyramid.done[0]?.name).toBe("Shipped Auth");
+    expect(pyramid.done[0]?.branchName).toBe(null);
+    expect(pyramid.inProgress.map((f) => f.branchName)).toEqual([
+      "feature/wip",
+    ]);
+  });
 });

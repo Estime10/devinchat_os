@@ -1,3 +1,5 @@
+import { githubApiGet } from "@/lib/github/api-get";
+
 export const COMMIT_ACTIVITY_WEEKS = 12;
 
 type GithubCommitWeek = {
@@ -35,13 +37,9 @@ export async function fetchGithubCommitActivity(input: {
   const url = `https://api.github.com/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/stats/commit_activity`;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${input.accessToken}`,
-        "User-Agent": "devinchat-os",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+    const response = await githubApiGet({
+      accessToken: input.accessToken,
+      url,
       cache: "no-store",
     });
 

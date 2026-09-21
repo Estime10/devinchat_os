@@ -2,6 +2,8 @@
 
 ## Developer Progress OS
 
+> **Gel V1 :** le scope d’implémentation actif est défini dans [`01_PRD.md` — section « V1 = pyramide »](./01_PRD.md). Ce TDD n’est **pas** une checklist à dérouler (webhooks, TanStack Query, progress %, etc. restent hors V1 tant que le PRD ne les dé-gèle pas).
+
 | Champ | Valeur |
 | --- | --- |
 | **Type de document** | Technical Design Document (TDD) |

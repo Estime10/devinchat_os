@@ -10,8 +10,15 @@ const credentialsSchema = z.object({
   scope: z.string().optional(),
 });
 
+const rpcRowSchema = z.object({
+  credentials_ciphertext: z.string().min(1),
+  credentials_nonce: z.string().min(1),
+  status: z.enum(["active", "expired", "revoked", "error"]),
+});
+
 /**
  * Access token GitHub du user — server-only, jamais exposé au client.
+ * Credentials via RPC (colonnes ciphertext interdites au SELECT JWT).
  * `cache()` déduplique au sein d’une même requête RSC.
  */
 export const getOwnGithubAccessToken = cache(
@@ -25,17 +32,19 @@ export const getOwnGithubAccessToken = cache(
       return null;
     }
 
-    const { data, error } = await supabase
-      .from("github_connections")
-      .select("credentials_ciphertext, credentials_nonce, status")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("get_own_github_credentials");
 
-    if (error || !data || data.status !== "active") {
+    if (error || !data) {
       return null;
     }
 
-    if (!data.credentials_ciphertext || !data.credentials_nonce) {
+    const rows = z.array(rpcRowSchema).safeParse(data);
+    if (!rows.success || rows.data.length === 0) {
+      return null;
+    }
+
+    const row = rows.data[0];
+    if (row.status !== "active") {
       return null;
     }
 
@@ -43,8 +52,8 @@ export const getOwnGithubAccessToken = cache(
       const { encryptionKey } = getGithubOAuthEnv();
       const plaintext = decryptAesGcm(
         {
-          ciphertext: data.credentials_ciphertext,
-          nonce: data.credentials_nonce,
+          ciphertext: row.credentials_ciphertext,
+          nonce: row.credentials_nonce,
         },
         encryptionKey,
       );

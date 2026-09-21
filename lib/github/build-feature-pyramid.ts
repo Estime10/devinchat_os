@@ -21,7 +21,7 @@ function compareFeatureRecency(a: OwnFeature, b: OwnFeature): number {
 
 /**
  * Pyramide : (main | develop) → done → in_progress.
- * Cards métier triées du plus récent au plus ancien.
+ * Les done sans branche (effacée sur GitHub) restent dans le tier done.
  */
 export function buildFeaturePyramid(features: OwnFeature[]): FeaturePyramid {
   let production: OwnFeature | null = null;
@@ -30,19 +30,20 @@ export function buildFeaturePyramid(features: OwnFeature[]): FeaturePyramid {
 
   for (const feature of features) {
     const branchName = feature.branchName ?? "";
-    if (!branchName) {
-      continue;
-    }
 
-    if (isProductionBranch(branchName)) {
+    if (branchName && isProductionBranch(branchName)) {
       if (!production || branchName === "main") {
         production = feature;
       }
       continue;
     }
 
-    if (isIntegrationBranch(branchName)) {
+    if (branchName && isIntegrationBranch(branchName)) {
       develop = feature;
+      continue;
+    }
+
+    if (!branchName && feature.status !== "done") {
       continue;
     }
 

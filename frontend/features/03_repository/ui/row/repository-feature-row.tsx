@@ -20,7 +20,7 @@ export function RepositoryFeatureRow({
         {name}
       </p>
       <p className="truncate font-sans text-xs leading-snug text-fg-muted">
-        {branchName}
+        {branchName.length > 0 ? branchName : "branch deleted"}
       </p>
       <p className="mt-1 font-sans text-[10px] tracking-wide text-fg-default uppercase">
         {status.replaceAll("_", " ")}

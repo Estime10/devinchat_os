@@ -19,10 +19,11 @@
   - `GITHUB_CLIENT_SECRET`
   - `GITHUB_CREDENTIALS_ENCRYPTION_KEY` (`openssl rand -base64 32`)
 - [ ] Appliquer la migration `github_connections`
+- [ ] Appliquer la migration `github_credentials_column_guard` (SELECT credentials fermé ; RPC `get_own_github_credentials`)
 - [ ] Vérifier connect → authorize → callback → status `connected` sur `/home`
 
 ## Notes
 
-- BotID : tester depuis le vrai formulaire en prod/preview Vercel (pas via curl).
+- [ ] **Scopes** : `read:user` + `repo` (minimum GitHub pour repos privés). L’app n’émet que des GET (`githubApiGet`). Migration GitHub App (Contents: Read) = post-V1.
 - Rate limit in-memory : à éviter en serverless (instances multiples).
 - Une OAuth App GitHub = **une** callback URL (souvent une app local + une app prod).

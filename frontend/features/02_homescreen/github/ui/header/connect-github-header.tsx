@@ -17,9 +17,9 @@ export function ConnectGithubHeader() {
         Connect GitHub
       </h1>
       <p className="font-sans text-sm text-white">
-        Mirror repo activity into feature progress. You authenticate on GitHub —
-        password and 2FA stay there. We only receive scoped access tokens
-        server-side.
+        Mirror repo activity into a branch pyramid. Auth stays on GitHub. We
+        only call read APIs (GET) — though classic OAuth still requires the
+        broad <code className="text-xs">repo</code> scope to see private repos.
       </p>
     </header>
   );
