@@ -2,8 +2,10 @@
 
 import { Heading, List, ListOrdered, Paperclip, Type, X } from "lucide-react";
 import {
+  isNoteAttachmentRefText,
+  nextNoteAttachmentLabel,
   NOTE_ATTACHMENT_INPUT_MIME_TYPES,
-  type NoteAttachment,
+  type EditorNoteAttachment,
 } from "@/backend/features/04_features/domain/note-attachment";
 import {
   NOTE_FORMAT_ACTIONS,
@@ -18,8 +20,8 @@ import { useRef } from "react";
 type NoteEditorProps = {
   blocks: NoteBlock[];
   onChange: (blocks: NoteBlock[]) => void;
-  attachments: NoteAttachment[];
-  onAddAttachment: (file: File) => void;
+  attachments: EditorNoteAttachment[];
+  onAddAttachment: (file: File, label: string) => void;
   onRemoveAttachment: (attachmentId: string) => void;
   attachmentsDisabled?: boolean;
   placeholder?: string;
@@ -51,8 +53,10 @@ export function NoteEditor({
     registerBlockRef,
     setActiveIndex,
     handleInput,
+    handlePaste,
     handleKeyDown,
     applyToolbarType,
+    insertAttachmentRef,
   } = useNoteEditor({ blocks, onChange });
 
   return (
@@ -116,9 +120,12 @@ export function NoteEditor({
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
-            if (file) {
-              onAddAttachment(file);
+            if (!file) {
+              return;
             }
+            const label = nextNoteAttachmentLabel(attachments);
+            onAddAttachment(file, label);
+            insertAttachmentRef(label);
           }}
         />
       </div>
@@ -130,13 +137,14 @@ export function NoteEditor({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.url}
-                alt={item.name}
+                alt={item.label}
                 className="note-editor-attachment-image"
               />
+              <span className="note-editor-attachment-label">{item.label}</span>
               <button
                 type="button"
                 className="note-editor-attachment-remove"
-                aria-label={`Remove ${item.name}`}
+                aria-label={`Remove ${item.label}`}
                 disabled={attachmentsDisabled}
                 onClick={() => {
                   onRemoveAttachment(item.id);
@@ -152,10 +160,13 @@ export function NoteEditor({
       <div className="note-editor" role="textbox" aria-multiline="true">
         {blocks.map((block, index) => {
           const showPlaceholder = isDocumentEmpty && index === 0;
+          const isAttachmentRef = isNoteAttachmentRefText(block.text);
           return (
             <div
               key={block.id}
-              className={`note-block note-block--${block.type}`}
+              className={`note-block note-block--${block.type}${
+                isAttachmentRef ? " note-block--attachment-ref" : ""
+              }`}
               data-numbered={
                 block.type === "numbered"
                   ? String(numberedListLabel(blocks, index))
@@ -169,7 +180,7 @@ export function NoteEditor({
                   </span>
                 ) : null}
                 <div
-                  ref={registerBlockRef(block.id, block.text)}
+                  ref={registerBlockRef(block.id)}
                   className="note-block-content"
                   contentEditable
                   suppressContentEditableWarning
@@ -180,6 +191,9 @@ export function NoteEditor({
                   }}
                   onInput={(event) => {
                     handleInput(index, event.currentTarget);
+                  }}
+                  onPaste={(event) => {
+                    handlePaste(event, index, event.currentTarget);
                   }}
                   onKeyDown={(event) => {
                     handleKeyDown(event, index, event.currentTarget);

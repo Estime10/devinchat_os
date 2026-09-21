@@ -14,12 +14,14 @@ function sanitizeFileName(name: string): string {
 }
 
 /**
- * Upload une image WebP dans le bucket notes (path owner-scoped).
+ * Upload une image WebP dans le bucket notes (noteId obligatoire — pas de draft).
  */
 export async function uploadOwnFeatureNoteAttachment(input: {
   featureId: string;
-  noteId?: string | null;
+  noteId: string;
   file: File;
+  attachmentId?: string;
+  label?: string;
 }): Promise<NoteAttachment | null> {
   if (input.file.type !== NOTE_ATTACHMENT_STORED_MIME) {
     return null;
@@ -45,10 +47,9 @@ export async function uploadOwnFeatureNoteAttachment(input: {
     return null;
   }
 
-  const attachmentId = createNoteAttachmentId();
+  const attachmentId = input.attachmentId ?? createNoteAttachmentId();
   const safeName = sanitizeFileName(input.file.name);
-  const scope = input.noteId ?? "draft";
-  const path = `${user.id}/${input.featureId}/${scope}/${attachmentId}-${safeName}.webp`;
+  const path = `${user.id}/${input.featureId}/${input.noteId}/${attachmentId}-${safeName}.webp`;
 
   const bytes = new Uint8Array(await input.file.arrayBuffer());
   const { error: uploadError } = await supabase.storage
@@ -73,6 +74,7 @@ export async function uploadOwnFeatureNoteAttachment(input: {
     name: `${safeName}.webp`,
     mimeType: NOTE_ATTACHMENT_STORED_MIME,
     size: input.file.size,
+    label: input.label ?? "image1",
   };
 }
 

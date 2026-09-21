@@ -258,6 +258,115 @@ export function updateNoteBlockText(
 }
 
 /**
+ * Coller du texte brut — une ligne = insert · multi-lignes = nouveaux blocs.
+ * Focus sur la dernière ligne collée.
+ */
+export function applyNotePaste(
+  blocks: readonly NoteBlock[],
+  index: number,
+  offset: number,
+  pasted: string,
+): NoteDocumentChange | null {
+  const current = blocks[index];
+  if (!current) {
+    return null;
+  }
+
+  const caret = clampOffset(current.text, offset);
+  const before = current.text.slice(0, caret);
+  const after = current.text.slice(caret);
+  const lines = pasted.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+
+  if (lines.length === 1) {
+    const inserted = lines[0] ?? "";
+    const text = before + inserted + after;
+    return {
+      blocks: updateNoteBlockText(blocks, index, text),
+      focusIndex: index,
+      focusOffset: before.length + inserted.length,
+    };
+  }
+
+  const firstText = before + (lines[0] ?? "");
+  const lastPasted = lines[lines.length - 1] ?? "";
+  const middleLines = lines.slice(1, -1);
+  const continuedType = continuesListType(current.type);
+
+  const insertedBlocks: NoteBlock[] = [
+    { ...current, text: firstText },
+    ...middleLines.map((text) =>
+      createNoteBlock({ type: continuedType, text }),
+    ),
+    createNoteBlock({
+      type: continuedType,
+      text: lastPasted + after,
+    }),
+  ];
+
+  const next = [
+    ...blocks.slice(0, index),
+    ...insertedBlocks,
+    ...blocks.slice(index + 1),
+  ];
+  const focusIndex = index + insertedBlocks.length - 1;
+
+  return {
+    blocks: next,
+    focusIndex,
+    focusOffset: lastPasted.length,
+  };
+}
+
+/**
+ * Insère une ref image (ex. image1) comme bloc dédié au caret.
+ * Focus sur le bloc suivant pour continuer à écrire.
+ */
+export function applyNoteInsertAttachmentRef(
+  blocks: readonly NoteBlock[],
+  index: number,
+  offset: number,
+  label: string,
+): NoteDocumentChange | null {
+  const current = blocks[index];
+  if (!current) {
+    return null;
+  }
+
+  const caret = clampOffset(current.text, offset);
+  const before = current.text.slice(0, caret);
+  const after = current.text.slice(caret);
+  const refBlock = createNoteBlock({ type: "paragraph", text: label });
+  const afterType =
+    current.type === "heading" ? "paragraph" : continuesListType(current.type);
+  const afterBlock = createNoteBlock({ type: afterType, text: after });
+
+  if (before.length === 0) {
+    return {
+      blocks: [
+        ...blocks.slice(0, index),
+        refBlock,
+        afterBlock,
+        ...blocks.slice(index + 1),
+      ],
+      focusIndex: index + 1,
+      focusOffset: 0,
+    };
+  }
+
+  return {
+    blocks: [
+      ...blocks.slice(0, index),
+      { ...current, text: before },
+      refBlock,
+      afterBlock,
+      ...blocks.slice(index + 1),
+    ],
+    focusIndex: index + 2,
+    focusOffset: 0,
+  };
+}
+
+/**
  * Applique un raccourci markdown si le texte du bloc le déclenche.
  * Changement de format depuis n’importe quel type.
  * `p ` → text uniquement hors paragraphe (ne strippe pas un vrai "p …").

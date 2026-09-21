@@ -2,6 +2,7 @@ import {
   applyNoteBackspaceAtStart,
   applyNoteEnter,
   applyNoteLineShortcut,
+  applyNotePaste,
   createNoteBlock,
   isNoteDocumentDirty,
   maybeConvertNoteShortcut,
@@ -213,5 +214,53 @@ describe("isNoteDocumentDirty", () => {
         baseline,
       ),
     ).toBe(true);
+  });
+});
+
+describe("applyNotePaste", () => {
+  it("insert une seule ligne au caret", () => {
+    const blocks = [createNoteBlock({ id: "a", text: "ac" })];
+    const result = applyNotePaste(blocks, 0, 1, "b");
+    expect(result?.blocks[0]?.text).toBe("abc");
+    expect(result?.focusIndex).toBe(0);
+    expect(result?.focusOffset).toBe(2);
+  });
+
+  it("multi-lignes → blocs + focus fin du collage", () => {
+    const blocks = [createNoteBlock({ id: "a", text: "before after" })];
+    // caret après "before " (offset 7)
+    const result = applyNotePaste(blocks, 0, 7, "one\ntwo\nthree");
+    expect(result?.blocks.map((b) => b.text)).toEqual([
+      "before one",
+      "two",
+      "threeafter",
+    ]);
+    expect(result?.focusIndex).toBe(2);
+    expect(result?.focusOffset).toBe(5);
+  });
+
+  it("continue le type liste sur les nouvelles lignes", () => {
+    const blocks = [createNoteBlock({ id: "a", type: "bullet", text: "a" })];
+    const result = applyNotePaste(blocks, 0, 1, "x\ny");
+    expect(result?.blocks.map((b) => b.type)).toEqual(["bullet", "bullet"]);
+    expect(result?.blocks.map((b) => b.text)).toEqual(["ax", "y"]);
+    expect(result?.focusIndex).toBe(1);
+    expect(result?.focusOffset).toBe(1);
+  });
+});
+
+describe("applyNoteInsertAttachmentRef", () => {
+  it("insère image1 comme bloc dédié au caret", async () => {
+    const { applyNoteInsertAttachmentRef } =
+      await import("@/backend/features/04_features/domain/note-block");
+    const blocks = [createNoteBlock({ id: "a", text: "hello world" })];
+    const result = applyNoteInsertAttachmentRef(blocks, 0, 5, "image1");
+    expect(result?.blocks.map((b) => b.text)).toEqual([
+      "hello",
+      "image1",
+      " world",
+    ]);
+    expect(result?.focusIndex).toBe(2);
+    expect(result?.focusOffset).toBe(0);
   });
 });

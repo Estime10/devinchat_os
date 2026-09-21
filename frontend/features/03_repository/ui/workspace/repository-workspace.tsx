@@ -1,7 +1,7 @@
 "use client";
 
 import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
-import type { NoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
+import type { EditorNoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
 import type { NoteBlock } from "@/backend/features/04_features/domain/note-block";
 import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
@@ -15,17 +15,20 @@ type RepositoryWorkspaceProps = {
   loadError: boolean;
   noteBlocks: NoteBlock[];
   onChangeNoteBlocks: (blocks: NoteBlock[]) => void;
-  noteAttachments: NoteAttachment[];
-  onAddNoteAttachment: (file: File) => void;
+  noteAttachments: EditorNoteAttachment[];
+  onAddNoteAttachment: (file: File, label: string) => void;
   onRemoveNoteAttachment: (attachmentId: string) => void;
   onDisplayedFeatureChange: (feature: OwnFeature | null) => void;
   notes: OwnFeatureNote[];
   activeNoteId: string | null;
   canSaveNotes: boolean;
+  canClearNotes: boolean;
   canDeleteNotes: boolean;
   canStartNewNote: boolean;
   notesPending?: boolean;
+  notesError?: string | null;
   onSaveNotes: () => void;
+  onClearNotes: () => void;
   onDeleteNotes: () => void;
   onNewNote: () => void;
   onSelectNote: (noteId: string) => void;
@@ -46,10 +49,13 @@ export function RepositoryWorkspace({
   notes,
   activeNoteId,
   canSaveNotes,
+  canClearNotes,
   canDeleteNotes,
   canStartNewNote,
   notesPending = false,
+  notesError = null,
   onSaveNotes,
+  onClearNotes,
   onDeleteNotes,
   onNewNote,
   onSelectNote,
@@ -106,10 +112,13 @@ export function RepositoryWorkspace({
               notes={notes}
               activeNoteId={activeNoteId}
               canSave={canSaveNotes}
+              canClear={canClearNotes}
               canDelete={canDeleteNotes}
               canStartNew={canStartNewNote}
               pending={notesPending}
+              error={notesError}
               onSave={onSaveNotes}
+              onClear={onClearNotes}
               onDelete={onDeleteNotes}
               onNew={onNewNote}
               onSelectNote={onSelectNote}

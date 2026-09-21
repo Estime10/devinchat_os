@@ -31,12 +31,15 @@ export function RepositoryShell({
     notes,
     activeNoteId,
     canSave,
+    canClear,
     canDelete,
     canStartNew,
     isPending,
+    error,
     selectNote,
     startNewNote,
     saveNote,
+    clearNote,
     deleteNote,
     addAttachment,
     removeAttachment,
@@ -51,24 +54,25 @@ export function RepositoryShell({
         noteBlocks={blocks}
         onChangeNoteBlocks={setBlocks}
         noteAttachments={attachments}
-        onAddNoteAttachment={(file) => {
-          void addAttachment(file);
+        onAddNoteAttachment={(file, label) => {
+          void addAttachment(file, label);
         }}
-        onRemoveNoteAttachment={(attachmentId) => {
-          void removeAttachment(attachmentId);
-        }}
+        onRemoveNoteAttachment={removeAttachment}
         onDisplayedFeatureChange={(feature) => {
           setDisplayedFeatureId(feature?.id ?? null);
         }}
         notes={notes}
         activeNoteId={activeNoteId}
         canSaveNotes={canSave}
+        canClearNotes={canClear}
         canDeleteNotes={canDelete}
         canStartNewNote={canStartNew}
         notesPending={isPending}
+        notesError={error}
         onSaveNotes={() => {
           void saveNote();
         }}
+        onClearNotes={clearNote}
         onDeleteNotes={() => {
           void deleteNote();
         }}

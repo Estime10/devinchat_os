@@ -28,26 +28,33 @@ function NotesLinkButton({
 
 type RepositoryNotesHeaderActionsProps = {
   canSave: boolean;
+  canClear: boolean;
   canDelete: boolean;
   pending?: boolean;
   onSave: () => void;
+  onClear: () => void;
   onDelete: () => void;
 };
 
 /**
- * [ save ] [ delete ] — même ligne que // notes.
+ * [ save ] [ clear ] [ delete ] — même ligne que // notes.
  */
 export function RepositoryNotesHeaderActions({
   canSave,
+  canClear,
   canDelete,
   pending = false,
   onSave,
+  onClear,
   onDelete,
 }: RepositoryNotesHeaderActionsProps) {
   return (
     <div className="flex shrink-0 items-center gap-3">
       <NotesLinkButton disabled={!canSave || pending} onClick={onSave}>
         [ save ]
+      </NotesLinkButton>
+      <NotesLinkButton disabled={!canClear || pending} onClick={onClear}>
+        [ clear ]
       </NotesLinkButton>
       {canDelete ? (
         <NotesLinkButton disabled={pending} onClick={onDelete}>

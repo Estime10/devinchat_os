@@ -1,9 +1,10 @@
 "use client";
 
-import type { NoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
+import type { EditorNoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
 import type { NoteBlock } from "@/backend/features/04_features/domain/note-block";
 import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
+import { StateError } from "@/frontend/components/states/error/state-error";
 import {
   RepositoryNewNoteAction,
   RepositoryNotesHeaderActions,
@@ -15,16 +16,19 @@ type RepositoryNotesSectionProps = {
   feature: OwnFeature;
   blocks: NoteBlock[];
   onChangeBlocks: (blocks: NoteBlock[]) => void;
-  attachments: NoteAttachment[];
-  onAddAttachment: (file: File) => void;
+  attachments: EditorNoteAttachment[];
+  onAddAttachment: (file: File, label: string) => void;
   onRemoveAttachment: (attachmentId: string) => void;
   notes: OwnFeatureNote[];
   activeNoteId: string | null;
   canSave: boolean;
+  canClear: boolean;
   canDelete: boolean;
   canStartNew: boolean;
   pending?: boolean;
+  error?: string | null;
   onSave: () => void;
+  onClear: () => void;
   onDelete: () => void;
   onNew: () => void;
   onSelectNote: (noteId: string) => void;
@@ -43,10 +47,13 @@ export function RepositoryNotesSection({
   notes,
   activeNoteId,
   canSave,
+  canClear,
   canDelete,
   canStartNew,
   pending = false,
+  error = null,
   onSave,
+  onClear,
   onDelete,
   onNew,
   onSelectNote,
@@ -64,9 +71,11 @@ export function RepositoryNotesSection({
         </p>
         <RepositoryNotesHeaderActions
           canSave={canSave}
+          canClear={canClear}
           canDelete={canDelete}
           pending={pending}
           onSave={onSave}
+          onClear={onClear}
           onDelete={onDelete}
         />
       </div>
@@ -92,6 +101,7 @@ export function RepositoryNotesSection({
           activeNoteId={activeNoteId}
           onSelect={onSelectNote}
         />
+        {error ? <StateError className="pt-1">{error}</StateError> : null}
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <NoteEditor
