@@ -1,6 +1,10 @@
 "use client";
 
-import { Heading, List, ListOrdered, Type } from "lucide-react";
+import { Heading, List, ListOrdered, Paperclip, Type, X } from "lucide-react";
+import {
+  NOTE_ATTACHMENT_INPUT_MIME_TYPES,
+  type NoteAttachment,
+} from "@/backend/features/04_features/domain/note-attachment";
 import {
   NOTE_FORMAT_ACTIONS,
   numberedListLabel,
@@ -9,10 +13,15 @@ import {
 } from "@/backend/features/04_features/domain/note-block";
 import { useNoteEditor } from "@/lib/hooks/repository/use-note-editor";
 import type { LucideIcon } from "lucide-react";
+import { useRef } from "react";
 
 type NoteEditorProps = {
   blocks: NoteBlock[];
   onChange: (blocks: NoteBlock[]) => void;
+  attachments: NoteAttachment[];
+  onAddAttachment: (file: File) => void;
+  onRemoveAttachment: (attachmentId: string) => void;
+  attachmentsDisabled?: boolean;
   placeholder?: string;
 };
 
@@ -24,13 +33,18 @@ const FORMAT_ICONS: Record<NoteBlockType, LucideIcon> = {
 };
 
 /**
- * Présentation éditeur notes — logique dans useNoteEditor.
+ * Présentation éditeur notes — texte + pièces jointes.
  */
 export function NoteEditor({
   blocks,
   onChange,
+  attachments,
+  onAddAttachment,
+  onRemoveAttachment,
+  attachmentsDisabled = false,
   placeholder = "Write a note…",
 }: NoteEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     activeType,
     isDocumentEmpty,
@@ -77,7 +91,63 @@ export function NoteEditor({
             </button>
           );
         })}
+
+        <button
+          type="button"
+          className="note-editor-toolbar-btn"
+          aria-label="Attach image"
+          title="Attach image"
+          disabled={attachmentsDisabled}
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
+          onClick={() => {
+            fileInputRef.current?.click();
+          }}
+        >
+          <Paperclip nonScalingStroke size={15} strokeWidth={1.75} />
+          <span className="note-editor-toolbar-label">Attach</span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={NOTE_ATTACHMENT_INPUT_MIME_TYPES.join(",")}
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) {
+              onAddAttachment(file);
+            }
+          }}
+        />
       </div>
+
+      {attachments.length > 0 ? (
+        <ul className="note-editor-attachments">
+          {attachments.map((item) => (
+            <li key={item.id} className="note-editor-attachment">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.url}
+                alt={item.name}
+                className="note-editor-attachment-image"
+              />
+              <button
+                type="button"
+                className="note-editor-attachment-remove"
+                aria-label={`Remove ${item.name}`}
+                disabled={attachmentsDisabled}
+                onClick={() => {
+                  onRemoveAttachment(item.id);
+                }}
+              >
+                <X nonScalingStroke size={12} strokeWidth={2} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <div className="note-editor" role="textbox" aria-multiline="true">
         {blocks.map((block, index) => {

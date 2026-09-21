@@ -36,6 +36,25 @@ export function hasNoteDocumentContent(blocks: readonly NoteBlock[]): boolean {
 }
 
 /**
+ * True si le contenu éditeur diffère de la baseline (ignore les ids de blocs).
+ */
+export function isNoteDocumentDirty(
+  current: readonly NoteBlock[],
+  baseline: readonly NoteBlock[],
+): boolean {
+  if (current.length !== baseline.length) {
+    return true;
+  }
+  return current.some((block, index) => {
+    const other = baseline[index];
+    if (!other) {
+      return true;
+    }
+    return block.type !== other.type || block.text !== other.text;
+  });
+}
+
+/**
  * Document vide (un seul paragraphe sans texte) — placeholder éditeur.
  */
 export function isEmptyNoteDocument(blocks: readonly NoteBlock[]): boolean {

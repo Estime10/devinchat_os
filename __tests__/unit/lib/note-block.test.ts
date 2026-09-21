@@ -1,12 +1,13 @@
-import { describe, expect, it } from "vitest";
 import {
   applyNoteBackspaceAtStart,
   applyNoteEnter,
   applyNoteLineShortcut,
   createNoteBlock,
+  isNoteDocumentDirty,
   maybeConvertNoteShortcut,
   numberedListLabel,
 } from "@/backend/features/04_features/domain/note-block";
+import { describe, expect, it } from "vitest";
 
 describe("applyNoteLineShortcut", () => {
   it("convertit p en paragraph", () => {
@@ -164,6 +165,53 @@ describe("hasNoteDocumentContent", () => {
         createNoteBlock({ text: "" }),
         createNoteBlock({ text: "note" }),
       ]),
+    ).toBe(true);
+  });
+});
+
+describe("deriveNoteTitle", () => {
+  it("prend le premier texte et tronque", async () => {
+    const { deriveNoteTitle } =
+      await import("@/backend/features/04_features/domain/note-document");
+    expect(deriveNoteTitle([createNoteBlock({ text: "" })])).toBe("Untitled");
+    expect(
+      deriveNoteTitle([
+        createNoteBlock({ text: "" }),
+        createNoteBlock({ text: "Hello world" }),
+      ]),
+    ).toBe("Hello world");
+    expect(
+      deriveNoteTitle([
+        createNoteBlock({
+          text: "A very long title that should be truncated for chips",
+        }),
+      ]),
+    ).toBe("A very long title…");
+  });
+});
+
+describe("isNoteDocumentDirty", () => {
+  it("false si même contenu (ids ignorés)", () => {
+    const a = [createNoteBlock({ id: "1", type: "paragraph", text: "hello" })];
+    const b = [createNoteBlock({ id: "2", type: "paragraph", text: "hello" })];
+    expect(isNoteDocumentDirty(a, b)).toBe(false);
+  });
+
+  it("true si texte ou type change", () => {
+    const baseline = [
+      createNoteBlock({ id: "1", type: "paragraph", text: "hello" }),
+    ];
+    expect(
+      isNoteDocumentDirty(
+        [createNoteBlock({ id: "1", type: "paragraph", text: "hello!" })],
+        baseline,
+      ),
+    ).toBe(true);
+    expect(
+      isNoteDocumentDirty(
+        [createNoteBlock({ id: "1", type: "heading", text: "hello" })],
+        baseline,
+      ),
     ).toBe(true);
   });
 });

@@ -14,7 +14,7 @@ type RepositoryShellProps = {
 };
 
 /**
- * Shell client repository — header + workspace notes partagés.
+ * Shell client repository — header + workspace notes DB.
  */
 export function RepositoryShell({
   repo,
@@ -24,8 +24,23 @@ export function RepositoryShell({
   const [displayedFeatureId, setDisplayedFeatureId] = useState<string | null>(
     null,
   );
-  const { blocks, setBlocks, hasContent, saveNow } =
-    useFeatureNotes(displayedFeatureId);
+  const {
+    blocks,
+    setBlocks,
+    attachments,
+    notes,
+    activeNoteId,
+    canSave,
+    canDelete,
+    canStartNew,
+    isPending,
+    selectNote,
+    startNewNote,
+    saveNote,
+    deleteNote,
+    addAttachment,
+    removeAttachment,
+  } = useFeatureNotes(displayedFeatureId);
 
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden py-5">
@@ -35,11 +50,30 @@ export function RepositoryShell({
         loadError={loadError}
         noteBlocks={blocks}
         onChangeNoteBlocks={setBlocks}
+        noteAttachments={attachments}
+        onAddNoteAttachment={(file) => {
+          void addAttachment(file);
+        }}
+        onRemoveNoteAttachment={(attachmentId) => {
+          void removeAttachment(attachmentId);
+        }}
         onDisplayedFeatureChange={(feature) => {
           setDisplayedFeatureId(feature?.id ?? null);
         }}
-        canSaveNotes={hasContent}
-        onSaveNotes={saveNow}
+        notes={notes}
+        activeNoteId={activeNoteId}
+        canSaveNotes={canSave}
+        canDeleteNotes={canDelete}
+        canStartNewNote={canStartNew}
+        notesPending={isPending}
+        onSaveNotes={() => {
+          void saveNote();
+        }}
+        onDeleteNotes={() => {
+          void deleteNote();
+        }}
+        onNewNote={startNewNote}
+        onSelectNote={selectNote}
       />
     </main>
   );

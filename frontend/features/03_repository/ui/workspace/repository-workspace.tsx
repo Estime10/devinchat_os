@@ -1,7 +1,9 @@
 "use client";
 
 import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
+import type { NoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
 import type { NoteBlock } from "@/backend/features/04_features/domain/note-block";
+import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import { RepositoryFeatureSection } from "@/frontend/features/03_repository/ui/section/repository-feature-section";
 import { RepositoryNotesSection } from "@/frontend/features/03_repository/ui/section/repository-notes-section";
@@ -13,9 +15,20 @@ type RepositoryWorkspaceProps = {
   loadError: boolean;
   noteBlocks: NoteBlock[];
   onChangeNoteBlocks: (blocks: NoteBlock[]) => void;
+  noteAttachments: NoteAttachment[];
+  onAddNoteAttachment: (file: File) => void;
+  onRemoveNoteAttachment: (attachmentId: string) => void;
   onDisplayedFeatureChange: (feature: OwnFeature | null) => void;
+  notes: OwnFeatureNote[];
+  activeNoteId: string | null;
   canSaveNotes: boolean;
+  canDeleteNotes: boolean;
+  canStartNewNote: boolean;
+  notesPending?: boolean;
   onSaveNotes: () => void;
+  onDeleteNotes: () => void;
+  onNewNote: () => void;
+  onSelectNote: (noteId: string) => void;
 };
 
 /**
@@ -26,9 +39,20 @@ export function RepositoryWorkspace({
   loadError,
   noteBlocks,
   onChangeNoteBlocks,
+  noteAttachments,
+  onAddNoteAttachment,
+  onRemoveNoteAttachment,
   onDisplayedFeatureChange,
+  notes,
+  activeNoteId,
   canSaveNotes,
+  canDeleteNotes,
+  canStartNewNote,
+  notesPending = false,
   onSaveNotes,
+  onDeleteNotes,
+  onNewNote,
+  onSelectNote,
 }: RepositoryWorkspaceProps) {
   const {
     selectedId,
@@ -76,8 +100,19 @@ export function RepositoryWorkspace({
               feature={displayed}
               blocks={noteBlocks}
               onChangeBlocks={onChangeNoteBlocks}
+              attachments={noteAttachments}
+              onAddAttachment={onAddNoteAttachment}
+              onRemoveAttachment={onRemoveNoteAttachment}
+              notes={notes}
+              activeNoteId={activeNoteId}
               canSave={canSaveNotes}
+              canDelete={canDeleteNotes}
+              canStartNew={canStartNewNote}
+              pending={notesPending}
               onSave={onSaveNotes}
+              onDelete={onDeleteNotes}
+              onNew={onNewNote}
+              onSelectNote={onSelectNote}
             />
           ) : null}
         </div>
