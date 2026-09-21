@@ -9,7 +9,7 @@ type FeatureTreeNodeViewProps = {
 };
 
 /**
- * Nœud récursif — card + stem + enfants (sous-branches).
+ * Nœud récursif — cible au-dessus, branche mergée en dessous (ligne + « merged into »).
  */
 export function FeatureTreeNodeView({
   node,
@@ -25,24 +25,29 @@ export function FeatureTreeNodeView({
         name={feature.name}
         branchName={feature.branchName ?? ""}
         status={feature.status}
-        mergedInto={null}
+        mergedInto={feature.parentBranchName}
         selected={selectedFeatureId === feature.id}
         onSelect={() => {
           onSelectFeature(feature);
         }}
       />
       {hasChildren ? (
-        <>
-          <div className="feature-tree-stem" aria-hidden />
-          {children.length === 1 ? (
-            <div className="feature-tree-children-solo">
-              <FeatureTreeNodeView
-                node={children[0]!}
-                selectedFeatureId={selectedFeatureId}
-                onSelectFeature={onSelectFeature}
-              />
+        children.length === 1 ? (
+          <div className="feature-tree-children-solo">
+            <div className="feature-tree-merge-link" aria-hidden>
+              <span className="feature-tree-merge-stem" />
             </div>
-          ) : (
+            <FeatureTreeNodeView
+              node={children[0]!}
+              selectedFeatureId={selectedFeatureId}
+              onSelectFeature={onSelectFeature}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="feature-tree-merge-link" aria-hidden>
+              <span className="feature-tree-merge-stem" />
+            </div>
             <div className="feature-tree-children">
               {children.map((child) => (
                 <div key={child.feature.id} className="feature-tree-child">
@@ -54,8 +59,8 @@ export function FeatureTreeNodeView({
                 </div>
               ))}
             </div>
-          )}
-        </>
+          </>
+        )
       ) : null}
     </div>
   );

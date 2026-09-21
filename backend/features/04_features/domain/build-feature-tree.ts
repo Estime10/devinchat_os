@@ -12,8 +12,11 @@ export type FeatureTreeNode = {
 
 export type FeatureTree = {
   root: FeatureTreeNode | null;
-  /** Hors lignée (ex. in_progress sans parent de merge). */
-  unattached: OwnFeature[];
+  /**
+   * Sous-arbres hors spine trunk (ex. A mergé dans B, tous deux encore open).
+   * Chaque nœud garde ses lignes enfants — pas de liste à plat.
+   */
+  openForest: FeatureTreeNode[];
 };
 
 function compareFeatureRecency(a: OwnFeature, b: OwnFeature): number {
@@ -55,7 +58,7 @@ function collectAttachedIds(node: FeatureTreeNode, into: Set<string>): void {
 
 /**
  * Arbre généalogique via parent_branch_name :
- * main → develop → branches mergées → sous-branches…
+ * main → develop → mergés → sous-branches… + forêt open hors spine.
  */
 export function buildFeatureTree(features: OwnFeature[]): FeatureTree {
   let production: OwnFeature | null = null;
@@ -111,8 +114,24 @@ export function buildFeatureTree(features: OwnFeature[]): FeatureTree {
 
   for (const feature of others) {
     const parent = feature.parentBranchName;
-    if (parent && byBranchName.has(parent)) {
+    if (!parent) {
+      continue;
+    }
+
+    if (byBranchName.has(parent)) {
       attachUnder(parent, feature);
+      continue;
+    }
+
+    if (
+      production?.branchName &&
+      (isProductionBranch(parent) || isIntegrationBranch(parent))
+    ) {
+      const fallbackParent =
+        isIntegrationBranch(parent) && develop?.branchName
+          ? develop.branchName
+          : production.branchName;
+      attachUnder(fallbackParent, feature);
     }
   }
 
@@ -152,9 +171,34 @@ export function buildFeatureTree(features: OwnFeature[]): FeatureTree {
     collectAttachedIds(root, attachedIds);
   }
 
-  const unattached = sortFeatures(
-    others.filter((feature) => !attachedIds.has(feature.id)),
+  const remaining = others.filter((feature) => !attachedIds.has(feature.id));
+  const remainingIds = new Set(remaining.map((feature) => feature.id));
+
+  // Racines de forêt : pas de parent open dans le reste.
+  const forestRoots = remaining.filter((feature) => {
+    const parent = feature.parentBranchName;
+    if (!parent) {
+      return true;
+    }
+    const parentFeature = byBranchName.get(parent);
+    return !parentFeature || !remainingIds.has(parentFeature.id);
+  });
+
+  const openForest = sortFeatures(forestRoots).map((feature) =>
+    buildNode(feature, new Set()),
   );
 
-  return { root, unattached };
+  // Filet : aucun open ne doit disparaître (cycles / parents orphelins).
+  const coveredIds = new Set<string>();
+  for (const node of openForest) {
+    collectAttachedIds(node, coveredIds);
+  }
+  for (const feature of sortFeatures(remaining)) {
+    if (!coveredIds.has(feature.id)) {
+      openForest.push({ feature, children: [] });
+      coveredIds.add(feature.id);
+    }
+  }
+
+  return { root, openForest };
 }

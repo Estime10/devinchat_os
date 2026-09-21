@@ -9,6 +9,7 @@ import {
   fetchBranchMergeMatrix,
   mergeMatrixLookup,
 } from "@/lib/github/fetch-branch-merge-matrix";
+import { fetchMergedPullParents } from "@/lib/github/fetch-merged-pull-parents";
 import {
   INTEGRATION_BRANCH,
   isIntegrationBranch,
@@ -55,7 +56,16 @@ export async function buildFeatureBranchSyncPlan(input: {
     branchNames,
   });
   const isMergedInto = mergeMatrixLookup(matrix);
-  const parents = buildBranchParentMap({ branchNames, isMergedInto });
+  const pullParentByHead = await fetchMergedPullParents({
+    accessToken: input.accessToken,
+    owner: input.owner,
+    repo: input.repo,
+  });
+  const parents = buildBranchParentMap({
+    branchNames,
+    isMergedInto,
+    pullParentByHead,
+  });
 
   const developMergedIntoProduction =
     hasDevelop && productionBranch

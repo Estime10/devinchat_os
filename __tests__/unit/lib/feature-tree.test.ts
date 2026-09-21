@@ -55,6 +55,74 @@ describe("resolveMergedIntoBranch", () => {
       }),
     ).toBe("main");
   });
+
+  it("préfère la base PR feature→feature au trunk compare", () => {
+    expect(
+      resolveMergedIntoBranch({
+        branchName: "feature/auth-ui",
+        branchNames: ["main", "develop", "feature/auth", "feature/auth-ui"],
+        isMergedInto: (base, head) =>
+          base === "develop" && head === "feature/auth-ui",
+        pullParentByHead: new Map([["feature/auth-ui", "feature/auth"]]),
+      }),
+    ).toBe("feature/auth");
+  });
+
+  it("open→open uniquement via PR mergée (pas de compare inventé)", () => {
+    expect(
+      resolveMergedIntoBranch({
+        branchName: "feature/child",
+        branchNames: ["main", "develop", "feature/parent", "feature/child"],
+        isMergedInto: () => false,
+        pullParentByHead: new Map([["feature/child", "feature/parent"]]),
+      }),
+    ).toBe("feature/parent");
+
+    expect(
+      resolveMergedIntoBranch({
+        branchName: "feature/child",
+        branchNames: ["main", "develop", "feature/parent", "feature/child"],
+        isMergedInto: (base, head) =>
+          base === "feature/parent" && head === "feature/child",
+        pullParentByHead: new Map(),
+      }),
+    ).toBe(null);
+  });
+
+  it("open sans PR ni trunk → pas de parent", () => {
+    expect(
+      resolveMergedIntoBranch({
+        branchName: "feature/child",
+        branchNames: [
+          "main",
+          "develop",
+          "feature/done-parent",
+          "feature/child",
+        ],
+        isMergedInto: (base, head) => {
+          if (head === "feature/done-parent") {
+            return base === "develop";
+          }
+          if (head === "feature/child") {
+            return base === "feature/done-parent";
+          }
+          return false;
+        },
+      }),
+    ).toBe(null);
+  });
+
+  it("fallback trunk si pas de PR parent", () => {
+    expect(
+      resolveMergedIntoBranch({
+        branchName: "feature/x",
+        branchNames: ["main", "develop", "feature/x"],
+        isMergedInto: (base, head) =>
+          base === "develop" && head === "feature/x",
+        pullParentByHead: new Map(),
+      }),
+    ).toBe("develop");
+  });
 });
 
 describe("buildFeatureTree", () => {
@@ -104,9 +172,102 @@ describe("buildFeatureTree", () => {
     expect(
       tree.root?.children[0]?.children.map((node) => node.feature.branchName),
     ).toEqual(["feature/c", "feature/a"]);
-    expect(tree.unattached.map((item) => item.branchName)).toEqual([
+    expect(tree.openForest.map((node) => node.feature.branchName)).toEqual([
       "feature/b",
     ]);
+  });
+
+  it("nest open→open avec lignes hors spine", () => {
+    const tree = buildFeatureTree([
+      feature({
+        id: "1",
+        name: "Main",
+        branchName: "main",
+        status: "done",
+      }),
+      feature({
+        id: "2",
+        name: "Develop",
+        branchName: "develop",
+        status: "in_progress",
+      }),
+      feature({
+        id: "parent",
+        name: "Parent WIP",
+        branchName: "feature/parent",
+        parentBranchName: null,
+        status: "in_progress",
+        lastPushedAt: "2026-01-02T00:00:00Z",
+      }),
+      feature({
+        id: "child",
+        name: "Child WIP",
+        branchName: "feature/child",
+        parentBranchName: "feature/parent",
+        status: "in_progress",
+        lastPushedAt: "2026-01-03T00:00:00Z",
+      }),
+      feature({
+        id: "solo",
+        name: "Solo WIP",
+        branchName: "feature/solo",
+        parentBranchName: null,
+        status: "in_progress",
+        lastPushedAt: "2026-01-04T00:00:00Z",
+      }),
+    ]);
+
+    expect(
+      tree.openForest.map((node) => node.feature.branchName).sort(),
+    ).toEqual(["feature/parent", "feature/solo"].sort());
+    const parentNode = tree.openForest.find(
+      (node) => node.feature.branchName === "feature/parent",
+    );
+    expect(parentNode?.children.map((node) => node.feature.branchName)).toEqual(
+      ["feature/child"],
+    );
+  });
+
+  it("ne perd aucun open même avec cycle parent A↔B", () => {
+    const tree = buildFeatureTree([
+      feature({
+        id: "1",
+        name: "Main",
+        branchName: "main",
+        status: "done",
+      }),
+      feature({
+        id: "a",
+        name: "A",
+        branchName: "feature/a",
+        parentBranchName: "feature/b",
+        status: "in_progress",
+      }),
+      feature({
+        id: "b",
+        name: "B",
+        branchName: "feature/b",
+        parentBranchName: "feature/a",
+        status: "in_progress",
+      }),
+    ]);
+
+    const ids = new Set<string>();
+    const walk = (node: {
+      feature: { id: string };
+      children: typeof tree.openForest;
+    }) => {
+      ids.add(node.feature.id);
+      for (const child of node.children) {
+        walk(child);
+      }
+    };
+    for (const node of tree.openForest) {
+      walk(node);
+    }
+
+    expect(ids.has("a")).toBe(true);
+    expect(ids.has("b")).toBe(true);
   });
 
   it("nest les sous-branches sous leur parent_branch_name", () => {
@@ -169,7 +330,7 @@ describe("buildFeatureTree", () => {
 
     expect(tree.root?.feature.branchName).toBe("develop");
     expect(tree.root?.children[0]?.feature.name).toBe("Shipped Auth");
-    expect(tree.unattached).toHaveLength(0);
+    expect(tree.openForest).toHaveLength(0);
   });
 
   it("place un hotfix mergé dans main à côté de develop", () => {
@@ -200,5 +361,31 @@ describe("buildFeatureTree", () => {
       "develop",
       "hotfix/x",
     ]);
+  });
+
+  it("rattache sous main si parent develop absent du sync", () => {
+    const tree = buildFeatureTree([
+      feature({
+        id: "1",
+        name: "Main",
+        branchName: "main",
+        status: "done",
+      }),
+      feature({
+        id: "3",
+        name: "Done A",
+        branchName: "feature/a",
+        parentBranchName: "develop",
+        status: "done",
+        lastPushedAt: "2026-01-02T00:00:00Z",
+      }),
+    ]);
+
+    expect(tree.root?.feature.branchName).toBe("main");
+    expect(tree.root?.children.map((node) => node.feature.branchName)).toEqual([
+      "feature/a",
+    ]);
+    expect(tree.root?.children[0]?.feature.parentBranchName).toBe("develop");
+    expect(tree.openForest).toHaveLength(0);
   });
 });

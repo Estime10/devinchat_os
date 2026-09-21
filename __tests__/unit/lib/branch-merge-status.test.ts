@@ -1,4 +1,7 @@
-import { isHeadMergedIntoBase } from "@/lib/github/is-branch-merged-into";
+import {
+  isHeadMergedIntoBase,
+  isHeadStrictlyMergedIntoBase,
+} from "@/lib/github/is-branch-merged-into";
 import {
   pickProductionBranch,
   resolveBranchFeatureStatus,
@@ -12,6 +15,37 @@ describe("isHeadMergedIntoBase", () => {
 
   it("false si la branche a des commits hors base", () => {
     expect(isHeadMergedIntoBase(3)).toBe(false);
+  });
+});
+
+describe("isHeadStrictlyMergedIntoBase", () => {
+  it("true si status behind", () => {
+    expect(
+      isHeadStrictlyMergedIntoBase({
+        aheadBy: 0,
+        behindBy: 2,
+        status: "behind",
+      }),
+    ).toBe(true);
+  });
+
+  it("false pour identical / ancêtre ambigu", () => {
+    expect(
+      isHeadStrictlyMergedIntoBase({
+        aheadBy: 0,
+        behindBy: 0,
+        status: "identical",
+      }),
+    ).toBe(false);
+  });
+
+  it("fallback ahead 0 + behind > 0", () => {
+    expect(isHeadStrictlyMergedIntoBase({ aheadBy: 0, behindBy: 3 })).toBe(
+      true,
+    );
+    expect(isHeadStrictlyMergedIntoBase({ aheadBy: 0, behindBy: 0 })).toBe(
+      false,
+    );
   });
 });
 

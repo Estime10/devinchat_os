@@ -12,6 +12,7 @@ type RepositoryFeatureRowProps = {
 /**
  * Carte feature — même échelle typo homescreen.
  * Enfants en pointer-events:none → curseur main sur toute la surface.
+ * `mergedInto` = parent_branch_name (ligne d’arbre + libellé).
  */
 export function RepositoryFeatureRow({
   name,
@@ -37,8 +38,8 @@ export function RepositoryFeatureRow({
         {status.replaceAll("_", " ")}
       </p>
       {mergedInto ? (
-        <p className="mt-0.5 truncate font-sans text-[10px] tracking-wide text-white/30">
-          merged into {mergedInto}
+        <p className="mt-1 truncate font-sans text-[10px] tracking-wide text-fg-muted normal-case">
+          → merged into {mergedInto}
         </p>
       ) : null}
     </>

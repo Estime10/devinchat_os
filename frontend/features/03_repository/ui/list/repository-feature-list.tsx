@@ -26,7 +26,7 @@ export function RepositoryFeatureList({
     );
   }
 
-  if (!tree || (!tree.root && tree.unattached.length === 0)) {
+  if (!tree || (!tree.root && tree.openForest.length === 0)) {
     return <StateEmpty>No branches found for this repository.</StateEmpty>;
   }
 

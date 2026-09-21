@@ -1,7 +1,6 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import type { FeatureTree as FeatureTreeModel } from "@/backend/features/04_features/domain/build-feature-tree";
 import { FeatureTreeNodeView } from "@/frontend/features/03_repository/ui/tree/feature-tree-node";
-import { RepositoryFeatureRow } from "@/frontend/features/03_repository/ui/row/repository-feature-row";
 
 type FeatureTreeProps = {
   tree: FeatureTreeModel;
@@ -9,37 +8,33 @@ type FeatureTreeProps = {
   onSelectFeature: (feature: OwnFeature) => void;
 };
 
-function UnattachedTier({
-  features,
+function OpenForestTier({
+  forest,
   selectedFeatureId,
   onSelectFeature,
 }: {
-  features: OwnFeature[];
+  forest: FeatureTreeModel["openForest"];
   selectedFeatureId: string | null;
   onSelectFeature: (feature: OwnFeature) => void;
 }) {
-  if (features.length === 0) {
+  if (forest.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-8">
       <p className="text-center font-sans text-xs tracking-[0.2em] text-white uppercase">
         {"// open"}
       </p>
-      <div className="feature-tree-unattached">
-        {features.map((feature) => (
-          <RepositoryFeatureRow
-            key={feature.id}
-            name={feature.name}
-            branchName={feature.branchName ?? ""}
-            status={feature.status}
-            mergedInto={feature.parentBranchName}
-            selected={selectedFeatureId === feature.id}
-            onSelect={() => {
-              onSelectFeature(feature);
-            }}
-          />
+      <div className="feature-tree-open-forest">
+        {forest.map((node) => (
+          <div key={node.feature.id} className="feature-tree-root">
+            <FeatureTreeNodeView
+              node={node}
+              selectedFeatureId={selectedFeatureId}
+              onSelectFeature={onSelectFeature}
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -47,7 +42,7 @@ function UnattachedTier({
 }
 
 /**
- * Arbre généalogique — main → develop → mergés → sous-branches.
+ * Arbre généalogique — spine trunk + forêt open (avec lignes).
  */
 export function FeatureTree({
   tree,
@@ -65,8 +60,8 @@ export function FeatureTree({
           />
         </div>
       ) : null}
-      <UnattachedTier
-        features={tree.unattached}
+      <OpenForestTier
+        forest={tree.openForest}
         selectedFeatureId={selectedFeatureId}
         onSelectFeature={onSelectFeature}
       />

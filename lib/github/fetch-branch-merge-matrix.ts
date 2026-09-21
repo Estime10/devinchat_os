@@ -1,8 +1,9 @@
-import { fetchIsBranchMergedInto } from "@/lib/github/is-branch-merged-into";
 import { listTrunkMergeComparePairs } from "@/backend/features/04_features/domain/list-trunk-merge-compare-pairs";
+import { fetchIsBranchMergedInto } from "@/lib/github/is-branch-merged-into";
 
 /**
- * Matrice base←head limitée aux trunks (develop / main|master) — O(N) compares.
+ * Matrice base←head limitée aux trunks (develop / main|master) — O(N).
+ * Les parents open→open viennent des PRs mergées, pas de compares N².
  */
 export async function fetchBranchMergeMatrix(input: {
   accessToken: string;
@@ -26,6 +27,7 @@ export async function fetchBranchMergeMatrix(input: {
           repo,
           base: pair.base,
           head: pair.head,
+          mode: "loose",
         });
         return { key: pair.key, merged: merged === true };
       }),

@@ -35,6 +35,26 @@
   );
 }
 
+@utility feature-tree-merge-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-block: 0.25rem;
+}
+
+@utility feature-tree-merge-stem {
+  display: block;
+  width: 1px;
+  height: 1.5rem;
+  background-color: color-mix(
+    in oklab,
+    var(--color-fg-default) 55%,
+    transparent
+  );
+}
+
 @utility feature-tree-children {
   display: flex;
   position: relative;
@@ -58,6 +78,14 @@
   justify-content: center;
   gap: 0.75rem;
   margin-inline: auto;
+}
+
+@utility feature-tree-open-forest {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
 }
 
 .feature-tree-child {
