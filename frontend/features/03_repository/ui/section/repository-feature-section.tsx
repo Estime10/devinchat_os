@@ -1,8 +1,10 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
+import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
 import { RepositoryFeatureList } from "@/frontend/features/03_repository/ui/list/repository-feature-list";
 
 type RepositoryFeatureSectionProps = {
-  features: OwnFeature[] | null;
+  tree: FeatureTree | null;
+  loadError: boolean;
   selectedFeatureId: string | null;
   onSelectFeature: (feature: OwnFeature) => void;
 };
@@ -11,7 +13,8 @@ type RepositoryFeatureSectionProps = {
  * Section branches — titre + arbre sélectionnable.
  */
 export function RepositoryFeatureSection({
-  features,
+  tree,
+  loadError,
   selectedFeatureId,
   onSelectFeature,
 }: RepositoryFeatureSectionProps) {
@@ -21,7 +24,8 @@ export function RepositoryFeatureSection({
         {"// branches"}
       </p>
       <RepositoryFeatureList
-        features={features}
+        tree={tree}
+        loadError={loadError}
         selectedFeatureId={selectedFeatureId}
         onSelectFeature={onSelectFeature}
       />

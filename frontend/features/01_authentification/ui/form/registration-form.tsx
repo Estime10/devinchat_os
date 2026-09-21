@@ -1,11 +1,10 @@
 "use client";
 
-import { isRegisterFormComplete } from "@/backend/features/01_authentification/schemas/register-form-complete";
 import type { RegisterState } from "@/backend/features/01_authentification/schemas/register-state";
 import { RegistrationActions } from "@/frontend/features/01_authentification/ui/actions/registration-actions";
 import { AuthField } from "@/frontend/features/01_authentification/ui/field/auth-field";
 import { RegistrationHeader } from "@/frontend/features/01_authentification/ui/header/registration-header";
-import { useState, type FormEvent } from "react";
+import { useRegisterForm } from "@/lib/hooks/authentification/use-register-form";
 
 type RegistrationFormProps = {
   state: RegisterState;
@@ -15,7 +14,7 @@ type RegistrationFormProps = {
 };
 
 /**
- * Orchestrateur UI du formulaire d’inscription.
+ * Présentation formulaire register — état dans useRegisterForm.
  */
 export function RegistrationForm({
   state,
@@ -23,11 +22,7 @@ export function RegistrationForm({
   pending,
   onLoginClick,
 }: RegistrationFormProps) {
-  const [isComplete, setIsComplete] = useState(false);
-
-  const handleFormChange = (event: FormEvent<HTMLFormElement>) => {
-    setIsComplete(isRegisterFormComplete(new FormData(event.currentTarget)));
-  };
+  const { isComplete, handleFormChange } = useRegisterForm();
 
   return (
     <form

@@ -3,7 +3,7 @@ import { listOwnProjectFeatures } from "@/backend/features/04_features/services/
 import { upsertOwnFeatureBranch } from "@/backend/features/04_features/services/upsert-own-feature-branch";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import { getOwnGithubAccessToken } from "@/backend/features/02_github/services/get-own-github-access-token";
-import { buildBranchParentMap } from "@/lib/github/build-branch-parent-map";
+import { buildBranchParentMap } from "@/backend/features/04_features/domain/build-branch-parent-map";
 import { fetchGithubBranches } from "@/lib/github/branches";
 import {
   fetchBranchMergeMatrix,
@@ -15,7 +15,7 @@ import {
   isProductionBranch,
   pickProductionBranch,
   resolveBranchFeatureStatus,
-} from "@/lib/github/resolve-branch-feature-status";
+} from "@/backend/features/04_features/domain/resolve-branch-feature-status";
 
 export type FeatureBranchSyncItem = {
   branchName: string;

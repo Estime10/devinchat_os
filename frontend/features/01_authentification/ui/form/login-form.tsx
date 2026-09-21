@@ -1,11 +1,10 @@
 "use client";
 
-import { isLoginFormComplete } from "@/backend/features/01_authentification/schemas/login-form-complete";
 import type { LoginState } from "@/backend/features/01_authentification/schemas/login-state";
 import { LoginActions } from "@/frontend/features/01_authentification/ui/actions/login-actions";
 import { AuthField } from "@/frontend/features/01_authentification/ui/field/auth-field";
 import { LoginHeader } from "@/frontend/features/01_authentification/ui/header/login-header";
-import { useState, type FormEvent } from "react";
+import { useLoginForm } from "@/lib/hooks/authentification/use-login-form";
 
 type LoginFormProps = {
   state: LoginState;
@@ -14,17 +13,16 @@ type LoginFormProps = {
   onRegisterClick: () => void;
 };
 
+/**
+ * Présentation formulaire login — état dans useLoginForm.
+ */
 export function LoginForm({
   state,
   formAction,
   pending,
   onRegisterClick,
 }: LoginFormProps) {
-  const [isComplete, setIsComplete] = useState(false);
-
-  const handleFormChange = (event: FormEvent<HTMLFormElement>) => {
-    setIsComplete(isLoginFormComplete(new FormData(event.currentTarget)));
-  };
+  const { isComplete, handleFormChange } = useLoginForm();
 
   return (
     <form

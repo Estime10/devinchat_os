@@ -1,4 +1,4 @@
-import { featureNameFromBranch } from "@/lib/github/feature-branch";
+import { featureNameFromBranch } from "@/backend/features/04_features/domain/feature-branch";
 import { createClient } from "@/lib/supabase/server";
 
 /**

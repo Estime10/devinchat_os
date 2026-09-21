@@ -1,38 +1,29 @@
 "use client";
 
-import { loginUser } from "@/backend/features/01_authentification/mutations/login-user";
-import { registerUser } from "@/backend/features/01_authentification/mutations/register-user";
-import { initialLoginState } from "@/backend/features/01_authentification/schemas/login-state";
-import { initialRegisterState } from "@/backend/features/01_authentification/schemas/register-state";
 import { GlassPanel } from "@/frontend/components/ui/glass/glass-panel";
 import { LoginForm } from "@/frontend/features/01_authentification/ui/form/login-form";
 import { RegistrationForm } from "@/frontend/features/01_authentification/ui/form/registration-form";
 import { AuthQuotesPanel } from "@/frontend/features/01_authentification/ui/quotes/auth-quotes-panel";
-import { ROUTES } from "@/lib/routes";
-import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useState } from "react";
+import { useAuthentificationScreen } from "@/lib/hooks/authentification/use-authentification-screen";
 
-type AuthMode = "register" | "login";
-
+/**
+ * Présentation auth — état dans useAuthentificationScreen.
+ */
 export function AuthentificationScreen() {
-  const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
-
-  const [registerState, registerAction, registerPending] = useActionState(
-    registerUser,
-    initialRegisterState,
-  );
-  const [loginState, loginAction, loginPending] = useActionState(
-    loginUser,
-    initialLoginState,
-  );
-
-  const pending = mode === "register" ? registerPending : loginPending;
-  const isSuccess = mode === "register" ? registerState.ok : loginState.ok;
-
-  const handleProgressComplete = useCallback(() => {
-    router.push(ROUTES.home);
-  }, [router]);
+  const {
+    mode,
+    registerState,
+    registerAction,
+    registerPending,
+    loginState,
+    loginAction,
+    loginPending,
+    pending,
+    isSuccess,
+    showLogin,
+    showRegister,
+    handleProgressComplete,
+  } = useAuthentificationScreen();
 
   return (
     <main className="px-layout-margin-x">
@@ -47,18 +38,14 @@ export function AuthentificationScreen() {
                 state={registerState}
                 formAction={registerAction}
                 pending={registerPending}
-                onLoginClick={() => {
-                  setMode("login");
-                }}
+                onLoginClick={showLogin}
               />
             ) : (
               <LoginForm
                 state={loginState}
                 formAction={loginAction}
                 pending={loginPending}
-                onRegisterClick={() => {
-                  setMode("register");
-                }}
+                onRegisterClick={showRegister}
               />
             )}
           </section>

@@ -1,9 +1,7 @@
 "use client";
 
-import { pickRandomAuthQuote } from "@/frontend/features/01_authentification/ui/quotes/auth-quotes";
-import { startAuthQuotesAnimation } from "@/lib/animation/auth-quotes/start-auth-quotes-animation";
 import { AuthProgressBar } from "@/lib/animation/progress-bar/variants/auth";
-import { useEffect, useRef } from "react";
+import { useAuthQuotesPanel } from "@/lib/hooks/authentification/use-auth-quotes-panel";
 
 type AuthQuotesPanelProps = {
   isRegistering: boolean;
@@ -12,34 +10,15 @@ type AuthQuotesPanelProps = {
 };
 
 /**
- * Panneau 30% — stream de quotes, ou barre de progression pendant le register.
+ * Présentation panneau quotes / barre — état dans useAuthQuotesPanel.
  */
 export function AuthQuotesPanel({
   isRegistering,
   isSuccess,
   onProgressComplete,
 }: AuthQuotesPanelProps) {
-  const textRef = useRef<HTMLParagraphElement>(null);
-  const cursorRef = useRef<HTMLSpanElement>(null);
   const showProgress = isRegistering || isSuccess;
-
-  useEffect(() => {
-    if (showProgress) {
-      return;
-    }
-
-    const textNode = textRef.current;
-    const cursorNode = cursorRef.current;
-    if (!textNode || !cursorNode) {
-      return;
-    }
-
-    return startAuthQuotesAnimation({
-      textNode,
-      cursorNode,
-      pickQuote: pickRandomAuthQuote,
-    });
-  }, [showProgress]);
+  const { textRef, cursorRef } = useAuthQuotesPanel(showProgress);
 
   return (
     <section

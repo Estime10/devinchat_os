@@ -24,6 +24,10 @@
   --success-fg: #39ff14;
   --danger-fg: #ff3b3b;
 
+  /* Surfaces claires (auth quotes / progress on-light) */
+  --on-light-fg: #000000;
+  --on-light-fg-muted: rgb(0 0 0 / 0.7);
+
   /* Glass */
   --glass-bg: rgba(10, 20, 10, 0.45);
   --glass-border: rgba(57, 255, 20, 0.22);
@@ -43,6 +47,8 @@
   --color-fg-muted: var(--fg-muted);
   --color-fg-subtle: var(--fg-subtle);
   --color-fg-dim: var(--fg-dim);
+  --color-on-light-fg: var(--on-light-fg);
+  --color-on-light-fg-muted: var(--on-light-fg-muted);
   --color-border-default: var(--border-default);
   --color-accent-fg: var(--accent-fg);
   --color-danger-fg: var(--danger-fg);

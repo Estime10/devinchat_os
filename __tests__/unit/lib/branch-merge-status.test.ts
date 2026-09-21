@@ -2,7 +2,7 @@ import { isHeadMergedIntoBase } from "@/lib/github/is-branch-merged-into";
 import {
   pickProductionBranch,
   resolveBranchFeatureStatus,
-} from "@/lib/github/resolve-branch-feature-status";
+} from "@/backend/features/04_features/domain/resolve-branch-feature-status";
 import { describe, expect, it } from "vitest";
 
 describe("isHeadMergedIntoBase", () => {

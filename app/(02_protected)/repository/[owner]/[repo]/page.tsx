@@ -3,10 +3,8 @@ import { getOwnGithubRepo } from "@/backend/features/02_github/services/get-own-
 import { getOwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection";
 import { loadOwnRepositoryFeatures } from "@/backend/features/04_features/services/load-own-repository-features";
 import { SuspenseStream } from "@/frontend/components/async/suspense-stream";
-import {
-  RepositoryBoot,
-  RepositoryBootReady,
-} from "@/frontend/features/03_repository/ui/boot/repository-boot";
+import { Boot, BootReady } from "@/frontend/components/boot/boot";
+import { repositoryBootProgress } from "@/frontend/components/boot/presets";
 import { RepositoryScreen } from "@/frontend/features/03_repository/repository-screen";
 import { ROUTES } from "@/lib/routes";
 import { notFound, redirect } from "next/navigation";
@@ -20,11 +18,11 @@ type RepositoryPageProps = {
  */
 export default function RepositoryPage({ params }: RepositoryPageProps) {
   return (
-    <RepositoryBoot>
+    <Boot {...repositoryBootProgress}>
       <SuspenseStream fallback={null}>
         <RepositoryContent params={params} />
       </SuspenseStream>
-    </RepositoryBoot>
+    </Boot>
   );
 }
 
@@ -53,7 +51,7 @@ async function RepositoryContent({ params }: RepositoryPageProps) {
 
   return (
     <>
-      <RepositoryBootReady />
+      <BootReady />
       <RepositoryScreen repo={result.repo} features={features} />
     </>
   );

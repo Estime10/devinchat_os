@@ -7,7 +7,7 @@ type HomePageProps = {
 };
 
 /**
- * /home — streaming via SuspenseStream partagé.
+ * /home — une seule boundary Suspense (évite skeleton → board → remount).
  */
 export default function HomePage({ searchParams }: HomePageProps) {
   return (

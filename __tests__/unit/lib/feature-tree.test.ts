@@ -1,5 +1,5 @@
-import { resolveMergedIntoBranch } from "@/lib/github/build-branch-parent-map";
-import { buildFeatureTree } from "@/lib/github/build-feature-tree";
+import { resolveMergedIntoBranch } from "@/backend/features/04_features/domain/build-branch-parent-map";
+import { buildFeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import { describe, expect, it } from "vitest";
 

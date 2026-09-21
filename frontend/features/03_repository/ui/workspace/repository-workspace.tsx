@@ -1,18 +1,22 @@
 "use client";
 
-import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
+import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
 import { useRepositoryWorkspace } from "@/lib/hooks/repository/use-repository-workspace";
 import { RepositoryFeatureSection } from "@/frontend/features/03_repository/ui/section/repository-feature-section";
 import { RepositoryNotesSection } from "@/frontend/features/03_repository/ui/section/repository-notes-section";
 
 type RepositoryWorkspaceProps = {
-  features: OwnFeature[] | null;
+  tree: FeatureTree | null;
+  loadError: boolean;
 };
 
 /**
  * Présentation workspace — état dans useRepositoryWorkspace.
  */
-export function RepositoryWorkspace({ features }: RepositoryWorkspaceProps) {
+export function RepositoryWorkspace({
+  tree,
+  loadError,
+}: RepositoryWorkspaceProps) {
   const {
     selectedId,
     displayed,
@@ -23,15 +27,12 @@ export function RepositoryWorkspace({ features }: RepositoryWorkspaceProps) {
   } = useRepositoryWorkspace();
 
   return (
-    <div
-      ref={shellRef}
-      className="flex min-h-0 flex-1 overflow-hidden"
-      style={{ columnGap: 0, gap: 0 }}
-    >
+    <div ref={shellRef} className="repository-workspace">
       <div className="flex min-h-0 min-w-0 flex-1 justify-center overflow-hidden">
         <div className="flex min-h-0 w-full max-w-5xl flex-col overflow-hidden">
           <RepositoryFeatureSection
-            features={features}
+            tree={tree}
+            loadError={loadError}
             selectedFeatureId={selectedId}
             onSelectFeature={selectFeature}
           />
@@ -40,8 +41,7 @@ export function RepositoryWorkspace({ features }: RepositoryWorkspaceProps) {
 
       <div
         ref={notesPanelRef}
-        className="min-h-0 shrink-0 overflow-hidden"
-        style={{ width: 0 }}
+        className="repository-workspace-notes"
         aria-hidden={selectedId === null}
       >
         <div

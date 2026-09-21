@@ -1,5 +1,5 @@
 import { fetchIsBranchMergedInto } from "@/lib/github/is-branch-merged-into";
-import { listTrunkMergeComparePairs } from "@/lib/github/list-trunk-merge-compare-pairs";
+import { listTrunkMergeComparePairs } from "@/backend/features/04_features/domain/list-trunk-merge-compare-pairs";
 
 /**
  * Matrice base←head limitée aux trunks (develop / main|master) — O(N) compares.

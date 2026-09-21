@@ -1,5 +1,5 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
-import { compareByBranchPushOrder } from "@/lib/github/branch-display-order";
+import { compareByBranchPushOrder } from "@/backend/features/04_features/domain/branch-display-order";
 import { createClient } from "@/lib/supabase/server";
 
 /**

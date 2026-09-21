@@ -8,35 +8,10 @@ import {
   openNotesPanel,
   switchNotesPanelContent,
 } from "@/lib/animation/repository-notes-panel/notes-panel";
+import { resolveWorkspaceSelectionAction } from "@/lib/hooks/repository/resolve-workspace-selection-action";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type NotesPanelTimeline = NonNullable<ReturnType<typeof openNotesPanel>>;
-
-export type WorkspaceSelectionAction = "open" | "close" | "switch" | "ignore";
-
-/**
- * Règle d’interaction workspace (pas du domaine métier serveur).
- */
-export function resolveWorkspaceSelectionAction(input: {
-  isAnimating: boolean;
-  isOpen: boolean;
-  selectedId: string | null;
-  nextFeatureId: string;
-}): WorkspaceSelectionAction {
-  if (input.isAnimating) {
-    return "ignore";
-  }
-
-  if (input.selectedId === input.nextFeatureId) {
-    return "close";
-  }
-
-  if (input.isOpen) {
-    return "switch";
-  }
-
-  return "open";
-}
 
 /**
  * État + orchestration panneau notes — hors composants UI.

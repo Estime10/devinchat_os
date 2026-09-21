@@ -1,5 +1,5 @@
 /*
-  Progress bar terminal — tons de texte.
+  Progress bar terminal — tons via tokens theme.
   Usage : progress-bar-eyebrow-{tone} · progress-bar-value-{tone} · progress-bar-label-{tone}
 */
 
@@ -9,7 +9,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: #000;
+  color: var(--color-on-light-fg);
 
   @media (width >= 40rem) {
     font-size: 0.875rem;
@@ -22,7 +22,7 @@
   font-weight: 500;
   line-height: 1.375;
   letter-spacing: 0.025em;
-  color: #000;
+  color: var(--color-on-light-fg);
 
   @media (width >= 40rem) {
     font-size: 1.25rem;
@@ -37,7 +37,7 @@
   margin-top: 1rem;
   font-family: var(--font-sans);
   font-size: 0.875rem;
-  color: rgb(0 0 0 / 0.7);
+  color: var(--color-on-light-fg-muted);
 }
 
 @utility progress-bar-eyebrow-default {

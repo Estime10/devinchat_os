@@ -1,5 +1,6 @@
 import { getOwnGithubAccessToken } from "@/backend/features/02_github/services/get-own-github-access-token";
 import { listOwnGithubRepos } from "@/backend/features/02_github/services/list-own-github-repos";
+import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map";
 import {
   fetchGithubCommitActivity,
   parseGithubFullName,
@@ -8,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const MAX_REPOS_PER_REQUEST = 12;
 
-export type GithubCommitActivityMap = Record<string, number[] | null>;
+export type { GithubCommitActivityMap };
 
 export function githubCommitActivityCacheTag(userId: string): string {
   return `github-commit-activity:${userId}`;

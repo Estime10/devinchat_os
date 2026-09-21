@@ -1,8 +1,6 @@
-import {
-  GithubRepoColumn,
-  type GithubCommitActivityMap,
-  type GithubRepoListItem,
-} from "@/frontend/features/02_homescreen/github/ui/repos/column/github-repo-column";
+import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map";
+import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item";
+import { GithubRepoColumn } from "@/frontend/features/02_homescreen/github/ui/repos/column/github-repo-column";
 
 type GithubReposBoardProps = {
   privateRepos: GithubRepoListItem[];

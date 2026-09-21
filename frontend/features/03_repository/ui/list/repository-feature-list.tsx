@@ -1,36 +1,38 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
+import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
 import { StateError } from "@/frontend/components/states/error/state-error";
-import { FeatureTree } from "@/frontend/features/03_repository/ui/tree/feature-tree";
-import { buildFeatureTree } from "@/lib/github/build-feature-tree";
+import { FeatureTree as FeatureTreeView } from "@/frontend/features/03_repository/ui/tree/feature-tree";
 
 type RepositoryFeatureListProps = {
-  features: OwnFeature[] | null;
+  tree: FeatureTree | null;
+  loadError: boolean;
   selectedFeatureId: string | null;
   onSelectFeature: (feature: OwnFeature) => void;
 };
 
 /**
- * Features du repo — états + arbre généalogique.
+ * Features du repo — états + arbre (données déjà résolues hors UI).
  */
 export function RepositoryFeatureList({
-  features,
+  tree,
+  loadError,
   selectedFeatureId,
   onSelectFeature,
 }: RepositoryFeatureListProps) {
-  if (features === null) {
+  if (loadError) {
     return (
       <StateError>Could not load features. Try reconnecting GitHub.</StateError>
     );
   }
 
-  if (features.length === 0) {
+  if (!tree || (!tree.root && tree.unattached.length === 0)) {
     return <StateEmpty>No branches found for this repository.</StateEmpty>;
   }
 
   return (
-    <FeatureTree
-      tree={buildFeatureTree(features)}
+    <FeatureTreeView
+      tree={tree}
       selectedFeatureId={selectedFeatureId}
       onSelectFeature={onSelectFeature}
     />

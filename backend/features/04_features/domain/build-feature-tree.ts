@@ -1,9 +1,9 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
-import { compareByPushRecency } from "@/lib/github/branch-display-order";
+import { compareByPushRecency } from "@/backend/features/04_features/domain/branch-display-order";
 import {
   isIntegrationBranch,
   isProductionBranch,
-} from "@/lib/github/resolve-branch-feature-status";
+} from "@/backend/features/04_features/domain/resolve-branch-feature-status";
 
 export type FeatureTreeNode = {
   feature: OwnFeature;

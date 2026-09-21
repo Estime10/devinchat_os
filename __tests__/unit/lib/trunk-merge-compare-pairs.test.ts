@@ -1,4 +1,4 @@
-import { listTrunkMergeComparePairs } from "@/lib/github/list-trunk-merge-compare-pairs";
+import { listTrunkMergeComparePairs } from "@/backend/features/04_features/domain/list-trunk-merge-compare-pairs";
 import { describe, expect, it } from "vitest";
 
 describe("listTrunkMergeComparePairs", () => {

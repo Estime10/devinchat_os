@@ -1,7 +1,7 @@
 import {
   INTEGRATION_BRANCH,
   pickProductionBranch,
-} from "@/lib/github/resolve-branch-feature-status";
+} from "@/backend/features/04_features/domain/resolve-branch-feature-status";
 
 export type TrunkMergeComparePair = {
   base: string;

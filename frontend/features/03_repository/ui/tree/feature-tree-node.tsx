@@ -1,5 +1,5 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
-import type { FeatureTreeNode } from "@/lib/github/build-feature-tree";
+import type { FeatureTreeNode } from "@/backend/features/04_features/domain/build-feature-tree";
 import { RepositoryFeatureRow } from "@/frontend/features/03_repository/ui/row/repository-feature-row";
 
 type FeatureTreeNodeViewProps = {
