@@ -1,22 +1,32 @@
+"use client";
+
 type RepositoryFeatureRowProps = {
   name: string;
   branchName: string;
   status: string;
   mergedInto: string | null;
+  selected?: boolean;
+  onSelect?: () => void;
 };
 
 /**
- * Carte feature — même échelle typo homescreen :
- * identité white · meta white/50 · chrome fg-default · tertiaire white/30.
+ * Carte feature — même échelle typo homescreen.
+ * Enfants en pointer-events:none → curseur main sur toute la surface.
  */
 export function RepositoryFeatureRow({
   name,
   branchName,
   status,
   mergedInto,
+  selected = false,
+  onSelect,
 }: RepositoryFeatureRowProps) {
-  return (
-    <div className="feature-card">
+  const className = selected
+    ? "feature-card feature-card-selected"
+    : "feature-card";
+
+  const body = (
+    <>
       <p className="truncate font-sans text-sm leading-snug text-white">
         {name}
       </p>
@@ -31,6 +41,21 @@ export function RepositoryFeatureRow({
           merged into {mergedInto}
         </p>
       ) : null}
-    </div>
+    </>
+  );
+
+  if (!onSelect) {
+    return <div className={className}>{body}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
+      {body}
+    </button>
   );
 }

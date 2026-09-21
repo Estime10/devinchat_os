@@ -5,9 +5,19 @@ import { RepositoryFeatureRow } from "@/frontend/features/03_repository/ui/row/r
 
 type FeatureTreeProps = {
   tree: FeatureTreeModel;
+  selectedFeatureId: string | null;
+  onSelectFeature: (feature: OwnFeature) => void;
 };
 
-function UnattachedTier({ features }: { features: OwnFeature[] }) {
+function UnattachedTier({
+  features,
+  selectedFeatureId,
+  onSelectFeature,
+}: {
+  features: OwnFeature[];
+  selectedFeatureId: string | null;
+  onSelectFeature: (feature: OwnFeature) => void;
+}) {
   if (features.length === 0) {
     return null;
   }
@@ -25,6 +35,10 @@ function UnattachedTier({ features }: { features: OwnFeature[] }) {
             branchName={feature.branchName ?? ""}
             status={feature.status}
             mergedInto={feature.parentBranchName}
+            selected={selectedFeatureId === feature.id}
+            onSelect={() => {
+              onSelectFeature(feature);
+            }}
           />
         ))}
       </div>
@@ -35,15 +49,27 @@ function UnattachedTier({ features }: { features: OwnFeature[] }) {
 /**
  * Arbre généalogique — main → develop → mergés → sous-branches.
  */
-export function FeatureTree({ tree }: FeatureTreeProps) {
+export function FeatureTree({
+  tree,
+  selectedFeatureId,
+  onSelectFeature,
+}: FeatureTreeProps) {
   return (
     <div className="feature-tree">
       {tree.root ? (
         <div className="feature-tree-root">
-          <FeatureTreeNodeView node={tree.root} />
+          <FeatureTreeNodeView
+            node={tree.root}
+            selectedFeatureId={selectedFeatureId}
+            onSelectFeature={onSelectFeature}
+          />
         </div>
       ) : null}
-      <UnattachedTier features={tree.unattached} />
+      <UnattachedTier
+        features={tree.unattached}
+        selectedFeatureId={selectedFeatureId}
+        onSelectFeature={onSelectFeature}
+      />
     </div>
   );
 }

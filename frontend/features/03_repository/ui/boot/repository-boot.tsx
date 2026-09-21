@@ -1,7 +1,7 @@
 "use client";
 
 import { RepositoryProgressBar } from "@/lib/animation/progress-bar/variants/repository";
-import gsap from "gsap";
+import { revealRepositoryContent } from "@/lib/animation/repository-boot/reveal-repository-content";
 import {
   createContext,
   type ReactNode,
@@ -44,26 +44,7 @@ export function RepositoryBoot({ children }: RepositoryBootProps) {
       return;
     }
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (prefersReducedMotion) {
-      root.style.opacity = "1";
-      return;
-    }
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        root,
-        { opacity: 0, y: 14 },
-        { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
-      );
-    }, root);
-
-    return () => {
-      ctx.revert();
-    };
+    return revealRepositoryContent(root);
   }, [revealed]);
 
   return (

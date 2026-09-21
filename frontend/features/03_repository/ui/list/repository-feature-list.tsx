@@ -6,6 +6,8 @@ import { buildFeatureTree } from "@/lib/github/build-feature-tree";
 
 type RepositoryFeatureListProps = {
   features: OwnFeature[] | null;
+  selectedFeatureId: string | null;
+  onSelectFeature: (feature: OwnFeature) => void;
 };
 
 /**
@@ -13,6 +15,8 @@ type RepositoryFeatureListProps = {
  */
 export function RepositoryFeatureList({
   features,
+  selectedFeatureId,
+  onSelectFeature,
 }: RepositoryFeatureListProps) {
   if (features === null) {
     return (
@@ -24,5 +28,11 @@ export function RepositoryFeatureList({
     return <StateEmpty>No branches found for this repository.</StateEmpty>;
   }
 
-  return <FeatureTree tree={buildFeatureTree(features)} />;
+  return (
+    <FeatureTree
+      tree={buildFeatureTree(features)}
+      selectedFeatureId={selectedFeatureId}
+      onSelectFeature={onSelectFeature}
+    />
+  );
 }

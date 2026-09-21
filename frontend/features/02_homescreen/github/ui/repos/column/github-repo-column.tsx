@@ -10,7 +10,11 @@ import { formatRelativeTime } from "@/lib/format/relative-time";
 import { parseGithubFullName } from "@/lib/github/commit-activity";
 import { paginate } from "@/lib/pagination/paginate";
 import { ROUTES } from "@/lib/routes";
-import gsap from "gsap";
+import {
+  animateReposListEnter,
+  animateReposListExit,
+} from "@/lib/animation/github-repos/animate-repos-list";
+import { prefersReducedMotion } from "@/lib/animation/prefers-reduced-motion";
 import { useEffect, useRef, useState } from "react";
 
 /** Item liste — type collé au consommateur colonne (DRY pour le board). */
@@ -80,19 +84,7 @@ export function GithubRepoColumn({
       return;
     }
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (prefersReducedMotion) {
-      return;
-    }
-
-    gsap.fromTo(
-      list,
-      { opacity: 0, y: 10 },
-      { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" },
-    );
+    animateReposListEnter(list);
   }, [safePage]);
 
   useEffect(() => {
@@ -176,23 +168,14 @@ export function GithubRepoColumn({
 
   const goToPage = (nextPage: number) => {
     const list = listRef.current;
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
 
-    if (!list || prefersReducedMotion) {
+    if (!list || prefersReducedMotion()) {
       setPage(nextPage);
       return;
     }
 
-    gsap.to(list, {
-      opacity: 0,
-      y: -8,
-      duration: 0.16,
-      ease: "power2.in",
-      onComplete: () => {
-        setPage(nextPage);
-      },
+    animateReposListExit(list, () => {
+      setPage(nextPage);
     });
   };
 
