@@ -19,16 +19,26 @@ type BranchOrderItem = {
   lastPushedAt: string | null;
 };
 
+function pushTimeMs(lastPushedAt: string | null): number {
+  if (!lastPushedAt) {
+    return 0;
+  }
+  const parsed = Date.parse(lastPushedAt);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 /**
- * Même rang : push les plus récents d’abord.
+ * Même rang : push les plus récents d’abord, puis nom de branche.
  */
 export function compareByPushRecency(
   a: BranchOrderItem,
   b: BranchOrderItem,
 ): number {
-  const timeA = a.lastPushedAt ? Date.parse(a.lastPushedAt) : 0;
-  const timeB = b.lastPushedAt ? Date.parse(b.lastPushedAt) : 0;
-  return timeB - timeA;
+  const byTime = pushTimeMs(b.lastPushedAt) - pushTimeMs(a.lastPushedAt);
+  if (byTime !== 0) {
+    return byTime;
+  }
+  return (a.branchName ?? "").localeCompare(b.branchName ?? "");
 }
 
 /**

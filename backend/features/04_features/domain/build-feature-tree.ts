@@ -26,6 +26,30 @@ function compareFeatureRecency(a: OwnFeature, b: OwnFeature): number {
   );
 }
 
+function latestPushMs(node: FeatureTreeNode): number {
+  let latest = node.feature.lastPushedAt
+    ? Date.parse(node.feature.lastPushedAt)
+    : 0;
+  if (!Number.isFinite(latest)) {
+    latest = 0;
+  }
+  for (const child of node.children) {
+    latest = Math.max(latest, latestPushMs(child));
+  }
+  return latest;
+}
+
+function compareOpenForestNodes(
+  a: FeatureTreeNode,
+  b: FeatureTreeNode,
+): number {
+  const byTime = latestPushMs(b) - latestPushMs(a);
+  if (byTime !== 0) {
+    return byTime;
+  }
+  return (a.feature.branchName ?? "").localeCompare(b.feature.branchName ?? "");
+}
+
 function sortFeatures(features: OwnFeature[]): OwnFeature[] {
   return [...features].sort(compareFeatureRecency);
 }
@@ -199,6 +223,9 @@ export function buildFeatureTree(features: OwnFeature[]): FeatureTree {
       coveredIds.add(feature.id);
     }
   }
+
+  // Plus récent → moins récent (activité du sous-arbre), y compris après filet.
+  openForest.sort(compareOpenForestNodes);
 
   return { root, openForest };
 }

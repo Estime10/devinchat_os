@@ -1,4 +1,5 @@
 import { githubApiGet } from "@/lib/github/api-get";
+import { GithubUnauthorizedError } from "@/lib/github/github-unauthorized-error";
 
 export type GithubBranch = {
   name: string;
@@ -100,6 +101,10 @@ export async function fetchGithubBranches(
 
     if (response.status === 404 || response.status === 403) {
       return [];
+    }
+
+    if (response.status === 401) {
+      throw new GithubUnauthorizedError();
     }
 
     if (!response.ok) {
