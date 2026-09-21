@@ -20,6 +20,7 @@
   - `GITHUB_CREDENTIALS_ENCRYPTION_KEY` (`openssl rand -base64 32`)
 - [ ] Appliquer la migration `github_connections`
 - [ ] Appliquer la migration `github_credentials_column_guard` (SELECT credentials fermé ; RPC `get_own_github_credentials`)
+- [ ] Appliquer la migration `upsert_own_github_connection` (écriture credentials via RPC — corrige `github_error=persist` au reconnect)
 - [ ] Vérifier connect → authorize → callback → status `connected` sur `/home`
 
 ## Notes

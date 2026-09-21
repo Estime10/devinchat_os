@@ -47,12 +47,19 @@ async function RepositoryContent({ params }: RepositoryPageProps) {
     notFound();
   }
 
-  const features = await loadOwnRepositoryFeatures(owner, repo);
+  const featuresResult = await loadOwnRepositoryFeatures(owner, repo);
+
+  if (featuresResult.kind === "unauthorized") {
+    redirect(`${ROUTES.home}?github_error=expired`);
+  }
 
   return (
     <>
       <BootReady />
-      <RepositoryScreen repo={result.repo} features={features} />
+      <RepositoryScreen
+        repo={result.repo}
+        features={featuresResult.kind === "ok" ? featuresResult.features : null}
+      />
     </>
   );
 }

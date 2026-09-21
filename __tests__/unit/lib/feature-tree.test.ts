@@ -217,15 +217,54 @@ describe("buildFeatureTree", () => {
       }),
     ]);
 
+    expect(tree.openForest.map((node) => node.feature.branchName)).toEqual([
+      "feature/solo",
+      "feature/parent",
+    ]);
     expect(
-      tree.openForest.map((node) => node.feature.branchName).sort(),
-    ).toEqual(["feature/parent", "feature/solo"].sort());
-    const parentNode = tree.openForest.find(
-      (node) => node.feature.branchName === "feature/parent",
-    );
-    expect(parentNode?.children.map((node) => node.feature.branchName)).toEqual(
-      ["feature/child"],
-    );
+      tree.openForest[1]?.children.map((node) => node.feature.branchName),
+    ).toEqual(["feature/child"]);
+  });
+
+  it("openForest : plus récent en premier même si entrée désordonnée", () => {
+    const tree = buildFeatureTree([
+      feature({
+        id: "1",
+        name: "Main",
+        branchName: "main",
+        status: "done",
+      }),
+      feature({
+        id: "old",
+        name: "Old",
+        branchName: "feature/old",
+        parentBranchName: null,
+        status: "in_progress",
+        lastPushedAt: "2026-01-01T00:00:00Z",
+      }),
+      feature({
+        id: "new",
+        name: "New",
+        branchName: "feature/new",
+        parentBranchName: null,
+        status: "in_progress",
+        lastPushedAt: "2026-01-05T00:00:00Z",
+      }),
+      feature({
+        id: "mid",
+        name: "Mid",
+        branchName: "feature/mid",
+        parentBranchName: null,
+        status: "in_progress",
+        lastPushedAt: "2026-01-03T00:00:00Z",
+      }),
+    ]);
+
+    expect(tree.openForest.map((node) => node.feature.branchName)).toEqual([
+      "feature/new",
+      "feature/mid",
+      "feature/old",
+    ]);
   });
 
   it("ne perd aucun open même avec cycle parent A↔B", () => {

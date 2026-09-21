@@ -2,6 +2,7 @@ import { isGithubConnectionActive } from "@/backend/features/02_github/domain/is
 import { getOwnGithubAccessToken } from "@/backend/features/02_github/services/get-own-github-access-token";
 import { getOwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection";
 import { getOwnGithubRepo } from "@/backend/features/02_github/services/get-own-github-repo";
+import { markOwnGithubConnectionExpired } from "@/backend/features/02_github/services/mark-own-github-connection-expired";
 import { githubReposCacheTag } from "@/backend/features/02_github/services/list-own-github-repos";
 import { upsertOwnGithubRepository } from "@/backend/features/02_github/services/upsert-own-github-repository";
 import { ensureOwnProjectForRepository } from "@/backend/features/03_projects/services/ensure-own-project-for-repository";
@@ -11,6 +12,7 @@ import {
 } from "@/backend/features/04_features/services/sync-own-project-features";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import { parseGithubFullName } from "@/lib/github/commit-activity";
+import { isGithubUnauthorizedError } from "@/lib/github/github-unauthorized-error";
 import { createClient } from "@/lib/supabase/server";
 import { unstable_cache } from "next/cache";
 
@@ -25,6 +27,11 @@ export function repositoryFeaturesCacheTag(
   return `repo-features:${userId}:${owner}/${repo}`;
 }
 
+export type OwnRepositoryFeaturesResult =
+  | { kind: "ok"; features: OwnFeature[] }
+  | { kind: "unauthorized" }
+  | { kind: "error" };
+
 /**
  * Use-case portfolio — miroir repo/projet + sync.
  * Cache = snapshot GitHub uniquement (pas de cookies dans unstable_cache).
@@ -32,35 +39,38 @@ export function repositoryFeaturesCacheTag(
 export async function loadOwnRepositoryFeatures(
   owner: string,
   repo: string,
-): Promise<OwnFeature[] | null> {
+): Promise<OwnRepositoryFeaturesResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return null;
+    return { kind: "error" };
   }
 
   const connection = await getOwnGithubConnection();
   if (!isGithubConnectionActive(connection) || !connection) {
-    return null;
+    return { kind: "unauthorized" };
   }
 
   const accessToken = await getOwnGithubAccessToken();
   if (!accessToken) {
-    return null;
+    return { kind: "unauthorized" };
   }
 
   const githubRepoResult = await getOwnGithubRepo(owner, repo);
+  if (githubRepoResult.kind === "unauthorized") {
+    return { kind: "unauthorized" };
+  }
   if (githubRepoResult.kind !== "ok") {
-    return null;
+    return { kind: "error" };
   }
 
   const githubRepo = githubRepoResult.repo;
   const parsed = parseGithubFullName(githubRepo.fullName);
   if (!parsed) {
-    return null;
+    return { kind: "error" };
   }
 
   const repositoryRow = await upsertOwnGithubRepository({
@@ -69,7 +79,7 @@ export async function loadOwnRepositoryFeatures(
     repo: githubRepo,
   });
   if (!repositoryRow) {
-    return null;
+    return { kind: "error" };
   }
 
   const project = await ensureOwnProjectForRepository({
@@ -78,7 +88,7 @@ export async function loadOwnRepositoryFeatures(
     projectName: githubRepo.name,
   });
   if (!project) {
-    return null;
+    return { kind: "error" };
   }
 
   const loadPlan = unstable_cache(
@@ -98,13 +108,25 @@ export async function loadOwnRepositoryFeatures(
     },
   );
 
-  const plan = await loadPlan();
-  if (!plan) {
-    return null;
-  }
+  try {
+    const plan = await loadPlan();
+    if (!plan) {
+      return { kind: "error" };
+    }
 
-  return applyFeatureBranchSyncPlan({
-    projectId: project.id,
-    plan,
-  });
+    const features = await applyFeatureBranchSyncPlan({
+      projectId: project.id,
+      plan,
+    });
+    if (!features) {
+      return { kind: "error" };
+    }
+    return { kind: "ok", features };
+  } catch (error) {
+    if (isGithubUnauthorizedError(error)) {
+      await markOwnGithubConnectionExpired();
+      return { kind: "unauthorized" };
+    }
+    return { kind: "error" };
+  }
 }

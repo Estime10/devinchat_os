@@ -49,15 +49,19 @@ export async function listOwnGithubRepos(): Promise<OwnGithubReposResult> {
 
   const loadRepos = unstable_cache(
     async (): Promise<
-      { kind: "ok"; data: OwnGithubRepos } | { kind: "error" }
+      | { kind: "ok"; data: OwnGithubRepos }
+      | { kind: "error" }
+      | { kind: "unauthorized" }
     > => {
       try {
         const repos = await fetchGithubRepos(accessToken);
         return { kind: "ok", data: splitReposByVisibility(repos) };
       } catch (error) {
         if (isGithubUnauthorizedError(error)) {
-          // Ne pas cacher unauthorized — sinon 60s de faux négatifs après reconnect.
-          throw error;
+          // Ne pas throw : Next/Turbopack remonte l’erreur en overlay RSC
+          // même si un catch externe la gère. Le status DB expired + redirect
+          // court-circuite les hits suivants ; reconnect invalide le tag.
+          return { kind: "unauthorized" };
         }
         return { kind: "error" };
       }
@@ -69,13 +73,10 @@ export async function listOwnGithubRepos(): Promise<OwnGithubReposResult> {
     },
   );
 
-  try {
-    return await loadRepos();
-  } catch (error) {
-    if (isGithubUnauthorizedError(error)) {
-      await markOwnGithubConnectionExpired();
-      return { kind: "unauthorized" };
-    }
-    return { kind: "error" };
+  const result = await loadRepos();
+  if (result.kind === "unauthorized") {
+    await markOwnGithubConnectionExpired();
+    return { kind: "unauthorized" };
   }
+  return result;
 }
