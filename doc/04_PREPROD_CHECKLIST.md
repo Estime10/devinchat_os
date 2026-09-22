@@ -2,11 +2,13 @@
 
 À faire **avant / au passage en production**, pas pendant le développement local.
 
+Docs : [`01_PRD`](./01_PRD.md) (V1 = arbre + notes) · [`03_DATABASE_DESIGN`](./03_DATABASE_DESIGN.md) (6 tables live).
+
 ## Auth — anti-bot & anti-spam
 
 - [ ] **Vercel BotID** sur les server actions `loginUser` et `registerUser` (`checkBotId()` + `initBotId` / `withBotId`)
 - [ ] **Rate limit** IP + email (ex. Upstash Redis) — ~5 tentatives / 15 min, réponse soft côté action
-- [ ] **Messages login génériques** — ne pas distinguer « email inconnu » vs « mauvais mot de passe »
+- [ ] **Messages login génériques** — ne pas distinguer « email inconnu » vs « mauvais mot de passe » ✅ (`Identifiants incorrects.`)
 - [ ] **Rate limits Supabase Auth** — resserrer dans le dashboard (2e filet)
 
 ## GitHub OAuth — setup local / prod
@@ -21,7 +23,14 @@
 - [ ] Appliquer la migration `github_connections`
 - [ ] Appliquer la migration `github_credentials_column_guard` (SELECT credentials fermé ; RPC `get_own_github_credentials`)
 - [ ] Appliquer la migration `upsert_own_github_connection` (écriture credentials via RPC — corrige `github_error=persist` au reconnect)
+- [ ] Appliquer la migration `github_credentials_write_guard` (REVOKE INSERT/UPDATE sur colonnes credentials)
 - [ ] Vérifier connect → authorize → callback → status `connected` sur `/home`
+
+## Notes / Storage
+
+- [ ] Appliquer `feature_note_attachments` + `feature_note_attachments_private` (bucket privé, SELECT owner-only)
+- [ ] Vérifier qu’une URL d’attachment **sans** signature renvoie 400/403
+- [ ] Vérifier remove image + save → objet storage disparu (GC serveur)
 
 ## Notes
 

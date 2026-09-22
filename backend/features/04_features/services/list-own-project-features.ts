@@ -3,7 +3,7 @@ import { compareByBranchPushOrder } from "@/backend/features/04_features/domain/
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Features visibles pyramide :
+ * Features visibles arbre :
  * - branche encore présente, ou
  * - status done (conservé après delete GitHub de la branche)
  * Exclut archived.

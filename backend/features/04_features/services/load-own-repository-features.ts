@@ -9,6 +9,7 @@ import { ensureOwnProjectForRepository } from "@/backend/features/03_projects/se
 import {
   applyFeatureBranchSyncPlan,
   buildFeatureBranchSyncPlan,
+  type FeatureBranchSyncPlan,
 } from "@/backend/features/04_features/services/sync-own-project-features";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
 import { parseGithubFullName } from "@/lib/github/commit-activity";
@@ -29,6 +30,11 @@ export function repositoryFeaturesCacheTag(
 
 export type OwnRepositoryFeaturesResult =
   | { kind: "ok"; features: OwnFeature[] }
+  | { kind: "unauthorized" }
+  | { kind: "error" };
+
+type CachedFeaturePlanResult =
+  | { kind: "ok"; plan: FeatureBranchSyncPlan }
   | { kind: "unauthorized" }
   | { kind: "error" };
 
@@ -92,12 +98,26 @@ export async function loadOwnRepositoryFeatures(
   }
 
   const loadPlan = unstable_cache(
-    async () =>
-      buildFeatureBranchSyncPlan({
-        accessToken,
-        owner: parsed.owner,
-        repo: parsed.repo,
-      }),
+    async (): Promise<CachedFeaturePlanResult> => {
+      try {
+        const plan = await buildFeatureBranchSyncPlan({
+          accessToken,
+          owner: parsed.owner,
+          repo: parsed.repo,
+        });
+        if (!plan) {
+          return { kind: "error" };
+        }
+        return { kind: "ok", plan };
+      } catch (error) {
+        // Catch *dans* unstable_cache : sinon Turbopack remonte l’overlay RSC
+        // même si un catch externe gère l’erreur.
+        if (isGithubUnauthorizedError(error)) {
+          return { kind: "unauthorized" };
+        }
+        return { kind: "error" };
+      }
+    },
     ["own-repository-feature-plan", user.id, parsed.owner, parsed.repo],
     {
       revalidate: REPOSITORY_FEATURES_CACHE_SECONDS,
@@ -108,25 +128,21 @@ export async function loadOwnRepositoryFeatures(
     },
   );
 
-  try {
-    const plan = await loadPlan();
-    if (!plan) {
-      return { kind: "error" };
-    }
-
-    const features = await applyFeatureBranchSyncPlan({
-      projectId: project.id,
-      plan,
-    });
-    if (!features) {
-      return { kind: "error" };
-    }
-    return { kind: "ok", features };
-  } catch (error) {
-    if (isGithubUnauthorizedError(error)) {
-      await markOwnGithubConnectionExpired();
-      return { kind: "unauthorized" };
-    }
+  const cached = await loadPlan();
+  if (cached.kind === "unauthorized") {
+    await markOwnGithubConnectionExpired();
+    return { kind: "unauthorized" };
+  }
+  if (cached.kind !== "ok") {
     return { kind: "error" };
   }
+
+  const features = await applyFeatureBranchSyncPlan({
+    projectId: project.id,
+    plan: cached.plan,
+  });
+  if (!features) {
+    return { kind: "error" };
+  }
+  return { kind: "ok", features };
 }

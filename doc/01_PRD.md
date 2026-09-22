@@ -4,17 +4,17 @@
 | --- | --- |
 | **Type de document** | `01_PRD` — Product Requirements Document |
 | **Produit** | Developer Progress OS (`devinchat_os`) |
-| **Version document** | 1.1 |
-| **Statut** | Source of truth — V1 = pyramide (gel partiel TDD) |
-| **Documents associés** | [`02_TDD.md`](./02_TDD.md) · [`03_DATABASE_DESIGN.md`](./03_DATABASE_DESIGN.md) |
+| **Version document** | 1.3 |
+| **Statut** | Source of truth — V1 = arbre de branches + notes persistées |
+| **Documents associés** | [`02_TDD.md`](./02_TDD.md) · [`03_DATABASE_DESIGN.md`](./03_DATABASE_DESIGN.md) · [`04_PREPROD_CHECKLIST.md`](./04_PREPROD_CHECKLIST.md) |
 | **Audience** | Founder / CEO agents / agents spécialisés (architecture, produit, GitHub, UX) |
 | **Stack cible** | Next.js (App Router) · TypeScript strict · Tailwind · Supabase · GitHub API |
-| **Horizon** | V1 — miroir Git → pyramide de branches |
-| **Séquence docs** | `01_PRD` → `02_TDD` → `03_DATABASE_DESIGN` → `04_API_CONTRACT` → `05_SECURITY_MODEL` → `06_IMPLEMENTATION` |
+| **Horizon** | V1 — miroir Git → arbre de branches + notes feature |
+| **Séquence docs** | `01_PRD` → `02_TDD` → `03_DATABASE_DESIGN` → `04_PREPROD_CHECKLIST` |
 
 ---
 
-## V1 = pyramide (cadrage actif)
+## V1 = arbre + notes (cadrage actif)
 
 > **Lire cette section avant le reste du PRD.**  
 > Le document historique ci-dessous décrit l’OS complet. **La V1 livrée / à stabiliser n’est pas cet OS.**
@@ -25,19 +25,20 @@ Un **miroir d’activité Git** :
 
 1. Auth Supabase (email / password)
 2. Homescreen GitHub (OAuth + liste repos + activité commits)
-3. Page repository → **pyramide de branches** :
+3. Page repository → **arbre généalogique de branches** (pas une pyramide plate) :
    - trunks : `main` / `master` + `develop`
-   - `done` (mergé dans develop ou production)
-   - `in_progress` (reste)
-4. Sync on-demand à l’ouverture (pas de webhooks)
-5. Tokens GitHub chiffrés server-side ; credentials **non lisibles** via SELECT JWT
-6. Compares GitHub **O(N)** (bases trunk seulement)
-7. Features `done` **conservées** si GitHub efface la branche (`branch_name = null`)
-8. Appels GitHub API **GET only** (`githubApiGet`) — le scope OAuth `repo` reste requis pour les privés (limitation OAuth App ; GitHub App = hors V1)
+   - forêt `open` ordonnée par parenté (`parent_branch_name`) + récence
+   - tier `done` (mergé) conservé même si GitHub efface la branche
+4. **Notes persistées** par feature (N notes, texte + images WebP, bucket Storage privé + URLs signées)
+5. Sync on-demand à l’ouverture (pas de webhooks)
+6. Tokens GitHub chiffrés server-side ; credentials **non lisibles** via SELECT JWT ; écriture credentials **uniquement** via RPC
+7. Compares GitHub **O(N)** (bases trunk seulement)
+8. Features `done` **conservées** si GitHub efface la branche (`branch_name = null`)
+9. Appels GitHub API **GET only** (`githubApiGet`) — le scope OAuth `repo` reste requis pour les privés (limitation OAuth App ; GitHub App = hors V1)
 
 ### Ce que V1 *n’est pas* (gelé — ne pas implémenter)
 
-| Hors V1 pyramide | Où c’était décrit | Statut |
+| Hors V1 | Où c’était décrit | Statut |
 | --- | --- | --- |
 | Machine d’états `planned → … → done` + % progress | §5 Progress model | Gelé |
 | `activity_events` / timeline | DB design + TDD | Gelé |
@@ -55,23 +56,27 @@ Le TDD (~2000 lignes) reste une **carte d’exploration**, pas une checklist d�
 3. Server-first ; pas de credentials dans le bundle client.
 4. API GitHub : GET only côté app. Scope `repo` = contrainte OAuth App classique pour lire le privé (pas de scope lecture-seule équivalent).
 5. Branche GitHub effacée : `done` reste `done` (sans branche) ; le reste → `archived`.
+6. Attachments notes : bucket **privé**, lecture via URLs signées owner-scoped ; GC storage des images droppées au save serveur.
 
 ---
 
 ## 0. Comment lire ce document
 
-Ce PRD est le **document source**. Pour le scope *courant*, la section **V1 = pyramide** prime. Le reste du document conserve la vision long terme.
+Ce PRD est le **document source**. Pour le scope *courant*, la section **V1 = arbre + notes** prime. Le reste du document conserve la vision long terme.
 
 Règles de gouvernance :
 
-1. Le cœur V1 (pyramide) est figé tant que la section V1 ne l’autorise pas explicitement.
-2. Les idées hors V1 pyramide vont dans **§8 Future Exploration** — capturées, non implémentées.
+1. Le cœur V1 (arbre de branches + notes) est figé tant que la section V1 ne l’autorise pas explicitement.
+2. Les idées hors V1 vont dans **§8 Future Exploration** — capturées, non implémentées.
 3. Le code n’est **jamais** dans le périmètre d’analyse. Le produit observe l’*activité* GitHub, pas le contenu des fichiers.
-4. Une branche = une entrée de pyramide (relation native). Convention `feature/*` = cible produit ; le miroir V1 peut lister d’autres branches tant que les trunks restent lisibles.
+4. Une branche = un nœud d’arbre (parenté via `parent_branch_name`). Convention `feature/*` = cible produit ; le miroir V1 peut lister d’autres branches tant que les trunks restent lisibles.
 
 ---
 
 ## 1. Vision
+
+> **Attention :** les §§1–5 et le corps historique ci-dessous décrivent la **vision long terme** (machine d’états, %, timeline).  
+> Pour le scope **implémenté**, seule la section **V1 = arbre + notes** (en tête) fait foi.
 
 ### Pourquoi ce produit existe
 
@@ -346,46 +351,49 @@ Règles :
 
 ---
 
-## 6. Scope V1
+## 6. Scope V1 (live)
+
+> Aligné sur la section tête **V1 = arbre + notes**. Le corps historique §§1–5 ne prime pas.
 
 ### In scope
 
-1. Auth utilisateur (via Supabase) + connexion GitHub
-2. Sélection de repositories à suivre
-3. Sync branches `feature/*` → Features
-4. Ingestion des activités (commits, pushes, PRs, merges)
-5. Calcul status + progress
-6. Vue Project list + vue Feature detail (lecture)
-7. Refresh / sync manuelle + sync automatique basique
+1. Auth utilisateur (Supabase email/password) + messages d’erreur génériques
+2. Connexion GitHub OAuth App (`read:user` + `repo`) — GET only
+3. Homescreen : liste repos + activité commits
+4. Page repository : sync on-demand → **arbre** de branches (`parent_branch_name`) + tiers trunks / open / done
+5. Statuts runtime : `in_progress` \| `done` \| `archived` (pas de % progress)
+6. **Notes persistées** par feature (texte + images WebP, bucket privé, URLs signées)
+7. Credentials GitHub chiffrés ; lecture/écriture via RPC uniquement
 
 ### Explicitement hors scope V1
 
 | Non-objectif | Pourquoi |
 | --- | --- |
+| Machine d’états `planned→…→done` + % | Gelé — vision long terme |
+| `activity_events` / timeline / webhooks | Gelé |
+| TanStack Query | Gelé — RSC + cache |
+| Sélection persistée de repos à suivre | Gelé — ouverture repo = follow implicite |
 | Analyse / lecture du code | Contredit le positionnement |
-| Clone obligatoire des repos | Complexité & friction inutiles |
-| IDE intégré | Hors mission |
-| Gestion de projet type Jira (backlog, sprints, assignees) | Ce n’est pas un tracker de tickets |
-| Documentation type Notion | Ce n’est pas un wiki |
-| IA qui « comprend » le projet | Risque de bullshit produit ; hors miroir d’activité |
-| Multi-user / org / team OS | Produit personnel en V1 |
-| Billing / marketplace | Trop tôt |
-| Mobile natif | Web responsive suffit |
+| Clone obligatoire des repos | Complexité inutile |
+| Documentation type Notion | Les notes restent attachées à une feature |
+| Multi-user / org / team OS | Produit personnel |
+| GitHub App | Post-V1 (least-privilege Contents: Read) |
 
 ### Critères de succès V1
 
-Un utilisateur connecté doit pouvoir, en < 1 minute :
+Un utilisateur connecté doit pouvoir :
 
-1. Voir ses projets suivis
-2. Identifier les features en cours
-3. Lire l’état + progress d’une feature sans ouvrir GitHub ni le code
-4. Comprendre *pourquoi* le status est ce qu’il est (signaux visibles)
+1. Connecter GitHub et voir ses repos
+2. Ouvrir un repo et lire l’arbre de branches (parenté + récence)
+3. Voir `done` conservé même si GitHub a effacé la branche
+4. Écrire / sauver des notes (texte + images) sur une feature
+5. Être renvoyé au homescreen connect si le token GitHub expire
 
 ### Non-critères V1
 
-- Exactitude “comptable” du %
+- Exactitude “comptable” d’un %
 - Couverture de 100 % des workflows Git exotiques
-- Support des monorepos multi-projets complexes (voir Future Exploration)
+- Support des monorepos multi-projets complexes
 
 ---
 
@@ -440,7 +448,6 @@ Un utilisateur connecté doit pouvoir, en < 1 minute :
 - Releases / Deployments (Vercel, GitHub Releases) comme état `SHIPPED`
 - Timeline globale cross-projets (“ce que j’ai avancé cette semaine”)
 - Streaks / rythme de shipping (gamification légère)
-- Notes manuelles attachées à une feature (sans devenir Notion)
 - Override manuel du status (exception, pas le défaut)
 - Détection de branches stale / zombie features
 - Intégration Linear/GitHub Issues comme *entrée* PLANNED (attention : ne pas devenir Jira)
@@ -469,27 +476,27 @@ Toute idée de cette section qui menace le cœur « miroir d’activité, zero c
 
 ---
 
-## 10. Décisions ouvertes (à trancher avant / pendant V1)
+## 10. Décisions (V1 live)
 
-| ID | Question | Impact | Owner suggéré |
-| --- | --- | --- | --- |
-| D1 | OAuth App vs GitHub App | Auth, webhooks, scopes | Architecture / Sécurité |
-| D2 | 1 Project = 1 Repo strict ? | Modèle de données | Produit |
-| D3 | Formule exacte du % V1 | UX trust | Produit + UX |
-| D4 | Que faire des branches non-`feature/` ? | Couverture | Produit |
-| D5 | Polling interval vs webhooks MVP | Coût / fraîcheur | DevOps |
-| D6 | Fenêtre de sync initiale | Perf / pertinence | Backend |
+| ID | Décision | Statut |
+| --- | --- | --- |
+| D1 | **OAuth App** GitHub (`read:user` + `repo`) — pas GitHub App | Verrouillé V1 |
+| D2 | 1 project = 1 repo à l’ouverture | Verrouillé V1 |
+| D3 | Pas de % progress | Gelé (vision) |
+| D4 | Sync **toutes** les branches (pas filtre `feature/*` seul) | Verrouillé V1 |
+| D5 | Sync on-demand à l’ouverture — pas de webhooks | Verrouillé V1 |
+| D6 | Parenté arbre = `parent_branch_name` | Verrouillé V1 |
 
 ---
 
 ## 11. Annexes — user stories V1 (seed)
 
 1. En tant que développeur, je connecte GitHub pour que l’OS puisse lire mon activité.
-2. En tant que développeur, je choisis quels repos suivre pour éviter le bruit.
-3. En tant que développeur, je vois automatiquement une Feature quand je crée `feature/<name>`.
-4. En tant que développeur, je vois commits / last activity / PR sur la carte Feature.
+2. En tant que développeur, je vois automatiquement une Feature quand je crée `feature/<name>`.
+3. En tant que développeur, je vois l’arbre de branches (parenté + récence) sur le repository.
+4. En tant que développeur, j’attache des notes (texte + images) à une feature et elles persistent.
 5. En tant que développeur, je comprends le status sans ouvrir le code.
-6. En tant que développeur, quand ma PR est mergée, la Feature passe à Merged/Done.
+6. En tant que développeur, quand ma PR est mergée, la Feature passe à Done.
 
 ---
 
@@ -497,5 +504,7 @@ Toute idée de cette section qui menace le cœur « miroir d’activité, zero c
 
 | Version | Date | Changement |
 | --- | --- | --- |
+| 1.3 | 2026-09-22 | §6 Scope + décisions alignés V1 live (arbre, notes, OAuth App, sync toutes branches) |
+| 1.2 | 2026-09-22 | V1 = **arbre** de branches + **notes persistées** (retire pyramide plate ; notes hors Future Exploration) |
 | 1.1 | 2026-09-21 | Section **V1 = pyramide** en tête — gel webhooks / TanStack / progress % / activity_events |
 | 1.0 | 2026-09-18 | Création PRD source — Vision, Problem, Core concept, GitHub, Progress, Scope V1, Future Exploration |

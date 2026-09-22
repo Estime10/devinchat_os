@@ -10,7 +10,7 @@ export type StaleFeatureUpdate = {
 
 /**
  * Branche absente sur GitHub :
- * - done → garder le status, nullifier branch_name (historique pyramide)
+ * - done → garder le status, nullifier branch_name (historique arbre)
  * - sinon → archived + branch_name null
  * - manual_override → ne pas toucher
  */

@@ -6,7 +6,6 @@ import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-fe
 import { deleteOwnFeatureNote } from "@/backend/features/04_features/services/delete-own-feature-note";
 import { listOwnFeatureNotes } from "@/backend/features/04_features/services/list-own-feature-notes";
 import { saveOwnFeatureNote } from "@/backend/features/04_features/services/save-own-feature-note";
-import { removeOwnFeatureNoteAttachmentFiles } from "@/backend/features/04_features/services/upload-own-feature-note-attachment";
 
 export async function listOwnFeatureNotesAction(
   featureId: string,
@@ -51,11 +50,4 @@ export async function deleteOwnFeatureNoteAction(input: {
   noteId: string;
 }): Promise<boolean> {
   return deleteOwnFeatureNote(input);
-}
-
-export async function removeOwnFeatureNoteAttachmentAction(input: {
-  path: string;
-}): Promise<boolean> {
-  await removeOwnFeatureNoteAttachmentFiles([input.path]);
-  return true;
 }
