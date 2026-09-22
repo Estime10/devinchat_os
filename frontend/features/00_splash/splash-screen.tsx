@@ -5,6 +5,7 @@ import {
   SPLASH_BOOT_LINES,
   SPLASH_BRAND,
 } from "@/lib/content/splash-boot-lines";
+import { SPLASH_PROGRESS } from "@/lib/content/splash-progress";
 import { useSplashScreen } from "@/lib/hooks/splash/use-splash-screen/use-splash-screen";
 
 type SplashScreenProps = {
@@ -12,7 +13,8 @@ type SplashScreenProps = {
 };
 
 /**
- * Splash PWA — logo → journal → progress → /home | /auth?mode=login.
+ * Splash cold boot — logo → journal → progress → /home | /auth?mode=login.
+ * Pas une surface PWA installable (pas de manifest).
  */
 export function SplashScreen({ isAuthenticated }: SplashScreenProps) {
   const {
@@ -74,15 +76,19 @@ export function SplashScreen({ isAuthenticated }: SplashScreenProps) {
             isComplete={progressComplete}
             onComplete={handleProgressComplete}
             eyebrow="// boot"
-            loadingLabel="loading os..."
+            loadingLabel="booting..."
             completedLabel="ready"
-            loadingTargetPercent={90}
-            loadingDurationSeconds={1}
-            completeDurationSeconds={0.35}
-            redirectDelaySeconds={0.5}
+            loadingTargetPercent={SPLASH_PROGRESS.loadingTargetPercent}
+            loadingDurationSeconds={SPLASH_PROGRESS.loadingDurationSeconds}
+            completeDurationSeconds={SPLASH_PROGRESS.completeDurationSeconds}
+            redirectDelaySeconds={SPLASH_PROGRESS.redirectDelaySeconds}
           />
         </div>
       </div>
+
+      <p className="splash-skip-hint" aria-hidden>
+        tap / esc to skip
+      </p>
     </main>
   );
 }
