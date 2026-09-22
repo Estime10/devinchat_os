@@ -1,5 +1,5 @@
 import { isProtectedPath, ROUTES } from "@/lib/routes";
-import { updateSession } from "@/lib/supabase/proxy";
+import { updateSession } from "@/lib/supabase/proxy/proxy";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
@@ -25,8 +25,18 @@ export async function proxy(request: NextRequest) {
 
 /**
  * Matcher Next.js — littéraux obligatoires (pas d'import / spread).
- * Doit rester aligné avec ROUTES + PROTECTED_ROUTES (`lib/routes.ts`).
+ * Doit rester aligné avec API (`lib/api/endpoints.ts`) + ROUTES.
  */
 export const config = {
-  matcher: ["/", "/home", "/home/:path*", "/api/me"],
+  matcher: [
+    "/",
+    "/home",
+    "/home/:path*",
+    "/repository",
+    "/repository/:path*",
+    "/api/me",
+    "/api/github/connect",
+    "/api/github/callback",
+    "/api/github/repos/commit-activity",
+  ],
 };

@@ -1,0 +1,20 @@
+/*
+  Workspace repository — arbre + panneau notes (GSAP anime width).
+  Usage : repository-workspace · repository-workspace-notes
+*/
+
+.repository-workspace {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+  gap: 0;
+  column-gap: 0;
+}
+
+.repository-workspace-notes {
+  min-height: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  width: 0;
+}

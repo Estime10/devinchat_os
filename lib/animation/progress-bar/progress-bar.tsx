@@ -7,6 +7,8 @@ const BAR_LENGTH = 10;
 const DEFAULT_REDIRECT_DELAY_SECONDS = 1;
 const DEFAULT_LOADING_TARGET_PERCENT = 90;
 
+export type ProgressBarTone = "on-light" | "default";
+
 export type ProgressBarProps = {
   isActive: boolean;
   isComplete: boolean;
@@ -17,6 +19,24 @@ export type ProgressBarProps = {
   className?: string;
   redirectDelaySeconds?: number;
   loadingTargetPercent?: number;
+  /** Auth panel clair (`on-light`) vs tokens app (`default`). */
+  tone?: ProgressBarTone;
+};
+
+const TONE_CLASSNAMES: Record<
+  ProgressBarTone,
+  { eyebrow: string; bar: string; label: string }
+> = {
+  "on-light": {
+    eyebrow: "progress-bar-eyebrow-on-light",
+    bar: "progress-bar-value-on-light",
+    label: "progress-bar-label-on-light",
+  },
+  default: {
+    eyebrow: "progress-bar-eyebrow-default",
+    bar: "progress-bar-value-default",
+    label: "progress-bar-label-default",
+  },
 };
 
 function formatBar(percent: number): string {
@@ -40,11 +60,13 @@ export function ProgressBar({
   className = "",
   redirectDelaySeconds = DEFAULT_REDIRECT_DELAY_SECONDS,
   loadingTargetPercent = DEFAULT_LOADING_TARGET_PERCENT,
+  tone = "on-light",
 }: ProgressBarProps) {
   const [percent, setPercent] = useState(0);
   const percentRef = useRef(0);
   const completedRef = useRef(false);
   const isFinished = isComplete && Math.round(percent) >= 100;
+  const tones = TONE_CLASSNAMES[tone];
 
   useEffect(() => {
     percentRef.current = percent;
@@ -126,13 +148,9 @@ export function ProgressBar({
       aria-live="polite"
       aria-busy={isActive}
     >
-      <p className="mb-4 font-sans text-xs tracking-[0.25em] text-black uppercase sm:text-sm">
-        {eyebrow}
-      </p>
-      <p className="font-sans text-lg leading-snug font-medium tracking-wide text-black sm:text-xl md:text-2xl">
-        {formatBar(percent)}
-      </p>
-      <p className="mt-4 font-sans text-sm text-black/70">
+      <p className={tones.eyebrow}>{eyebrow}</p>
+      <p className={tones.bar}>{formatBar(percent)}</p>
+      <p className={tones.label}>
         {isFinished ? completedLabel : loadingLabel}
       </p>
     </div>

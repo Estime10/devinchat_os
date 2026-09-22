@@ -1,0 +1,33 @@
+/*
+  Auth split — panneau quotes 30% / formulaire 70%.
+  Usage : auth-split-form · auth-split-quotes
+*/
+
+@utility auth-split-form {
+  height: 100%;
+  width: 70%;
+}
+
+@utility auth-split-quotes {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  height: 100%;
+  width: 30%;
+  flex-direction: column;
+  justify-content: center;
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: var(--color-glass-border);
+  background-color: color-mix(
+    in oklab,
+    var(--color-fg-default) 55%,
+    transparent
+  );
+  padding-inline: 1.25rem;
+  padding-block: 2rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+}

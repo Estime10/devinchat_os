@@ -1,7 +1,7 @@
 /*
-  Tokens design (couleurs, fonts) — Tailwind v4 @theme → utilitaires.
-  Pas de classes CSS custom : le style vit dans les className.
-  Layout shell (header, etc.) → lib/styles/layout/
+  Tokens design globaux uniquement (couleurs, fonts, ombres).
+  Layout shell → lib/styles/layout/
+  Composants UI → lib/styles/ui/ (un fichier par surface)
 */
 
 :root {
@@ -24,9 +24,14 @@
   --success-fg: #39ff14;
   --danger-fg: #ff3b3b;
 
-  /* Glass (couleurs → bg-glass-bg, border-glass-border) */
+  /* Surfaces claires (auth quotes / progress on-light) */
+  --on-light-fg: #000000;
+  --on-light-fg-muted: rgb(0 0 0 / 0.7);
+
+  /* Glass */
   --glass-bg: rgba(10, 20, 10, 0.45);
   --glass-border: rgba(57, 255, 20, 0.22);
+  --glass-shadow: 0 0 40px rgba(57, 255, 20, 0.06);
 
   --background: var(--canvas-subtle);
   --foreground: var(--fg-default);
@@ -42,10 +47,13 @@
   --color-fg-muted: var(--fg-muted);
   --color-fg-subtle: var(--fg-subtle);
   --color-fg-dim: var(--fg-dim);
+  --color-on-light-fg: var(--on-light-fg);
+  --color-on-light-fg-muted: var(--on-light-fg-muted);
   --color-border-default: var(--border-default);
   --color-accent-fg: var(--accent-fg);
   --color-danger-fg: var(--danger-fg);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
+  --shadow-glass: var(--glass-shadow);
   --font-sans: var(--font-mona-sans);
 }

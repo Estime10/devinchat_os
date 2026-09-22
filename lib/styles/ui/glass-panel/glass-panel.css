@@ -1,0 +1,17 @@
+/*
+  Glass panel — surface auth / modales plein viewport.
+  Usage : className="glass-panel"
+*/
+
+@utility glass-panel {
+  margin-block: var(--header-height);
+  height: calc(100dvh - 2 * var(--header-height));
+  width: 100%;
+  border-top-left-radius: var(--radius-lg, 0.5rem);
+  border-bottom-left-radius: var(--radius-lg, 0.5rem);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-glass-border);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(16px);
+}

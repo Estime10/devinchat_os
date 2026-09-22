@@ -1,5 +1,5 @@
 import { ROUTES } from "@/lib/routes";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server/server";
 import { redirect } from "next/navigation";
 
 export type AuthUser = {

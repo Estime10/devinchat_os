@@ -2,15 +2,19 @@
 
 ## Developer Progress OS
 
+> **Gel V1 :** le scope d’implémentation actif est défini dans [`01_PRD.md` — section « V1 = arbre + notes »](./01_PRD.md).  
+> Ce TDD n’est **pas** une checklist à dérouler. Webhooks, TanStack Query, progress %, `activity_events`, machine d’états riche restent **hors V1** tant que le PRD ne les dé-gèle pas.  
+> **Live aujourd’hui :** auth Supabase · OAuth GitHub · homescreen repos · sync on-demand → arbre (`parent_branch_name`) · notes persistées (Storage privé + URLs signées) · credentials via RPC.
+
 | Champ | Valeur |
 | --- | --- |
 | **Type de document** | Technical Design Document (TDD) |
-| **Statut** | Brouillon / Baseline architecture |
-| **Version** | 1.0 |
-| **Documents associés** | [`01_PRD.md`](./01_PRD.md) · [`03_DATABASE_DESIGN.md`](./03_DATABASE_DESIGN.md) |
+| **Statut** | Carte d’exploration — scope live = PRD V1 arbre + notes |
+| **Version** | 1.2 |
+| **Documents associés** | [`01_PRD.md`](./01_PRD.md) · [`03_DATABASE_DESIGN.md`](./03_DATABASE_DESIGN.md) · [`04_PREPROD_CHECKLIST.md`](./04_PREPROD_CHECKLIST.md) |
 | **Stack principale** | Next.js · React · TypeScript · Tailwind CSS · Supabase · PostgreSQL · GitHub API |
 | **Principe d’architecture** | Application sécurisée server-first ; GitHub comme source externe d’activité de développement |
-| **Séquence docs** | `01_PRD` → `02_TDD` → `03_DATABASE_DESIGN` → `04_API_CONTRACT` → `05_SECURITY_MODEL` → `06_IMPLEMENTATION` |
+| **Séquence docs** | `01_PRD` → `02_TDD` → `03_DATABASE_DESIGN` → `04_PREPROD_CHECKLIST` |
 
 ---
 
@@ -256,7 +260,7 @@ Utiliser :
 * PostgreSQL
 * Row Level Security
 * migrations de base de données
-* Supabase Storage uniquement si une feature future l’exige
+* Supabase Storage **V1** : bucket privé `feature-note-attachments` (images notes, URLs signées)
 
 Supabase ne doit pas être exposé directement comme interface de données principale pour les opérations de domaine sensibles.
 
@@ -501,9 +505,10 @@ Les Route Handlers sont particulièrement adaptés à :
 
 ---
 
-# 11. TanStack Query
+# 11. TanStack Query — **HORS V1**
 
-TanStack Query est utilisé pour l’état serveur dynamique.
+> Gelé. V1 live = Server Components + `unstable_cache` / tags + hooks locaux.  
+> Le texte ci-dessous est une esquisse vision — ne pas implémenter.
 
 L’application est censée recevoir une activité de développement fréquente : l’état serveur peut donc devenir stale rapidement.
 
@@ -606,45 +611,44 @@ Zod ne remplace pas l’intégrité en base.
 
 # 14. Architecture de domaine
 
-Le projet doit utiliser une architecture **feature-based**.
+Le projet doit utiliser une architecture **feature-based**, avec séparation claire frontend / backend et un **ordre de flow produit** via préfixes numériques.
 
-Structure suggérée :
+Structure cible (alignée sur le repo) :
 
 ```text
-src/
-├── app/
-│   ├── (auth)/
-│   ├── (workspace)/
-│   ├── api/
-│   └── ...
-│
-├── features/
-│   ├── projects/
-│   │   ├── components/
-│   │   ├── services/
-│   │   ├── mutations/
-│   │   ├── queries/
-│   │   ├── schemas/
-│   │   └── types/
-│   │
-│   ├── features/
-│   ├── github/
-│   ├── activity/
-│   ├── dashboard/
-│   └── command-center/
-│
-├── components/
+app/
+├── (01_auth)/                 # page auth publique (/)
+├── (02_protected)/            # zone session (/home, …)
+│   └── home/
+└── api/                       # adapters Next Route Handlers (minces)
+
+frontend/
+├── components/                # UI transverse
 │   ├── ui/
-│   └── layout/
-│
-├── lib/
-│   ├── auth/
-│   ├── supabase/
-│   ├── github/
-│   ├── validation/
-│   └── utils/
-│
-└── ...
+│   ├── layout/
+│   └── states/                # error / empty / loading
+└── features/                  # UI produit — ordre = parcours user
+    ├── 01_authentification/
+    └── 02_homescreen/
+        └── github/            # UI GitHub (pas un 03 top-level)
+
+backend/
+├── controllers/               # couche HTTP unique (hors features)
+└── features/                  # domaine serveur
+    ├── 01_authentification/   # mutations, schemas, services
+    └── 02_github/             # domain, messages, services (tokens chiffrés)
+
+lib/
+├── api/endpoints.ts           # registre des chemins /api/*
+├── github/                    # client OAuth / repos (infra)
+├── supabase/
+├── crypto/
+└── routes.ts                  # chemins pages (+ réexport API)
+
+doc/
+supabase/migrations/
+__tests__/
+proxy.ts                       # Next.js 16 — session + garde routes
 ```
 
 Éviter les dossiers globaux fourre-tout du type :
@@ -658,7 +662,12 @@ api/
 
 contenant de la logique applicative sans lien.
 
-La logique de domaine appartient **près de sa feature**.
+Règles :
+
+* logique de domaine → `backend/features/*`
+* UI feature → `frontend/features/*` (présentation pure)
+* controllers HTTP → `backend/controllers` uniquement
+* `app/api` = adapters Next, pas de logique métier
 
 ---
 
@@ -905,13 +914,9 @@ Ne pas appeler GitHub directement depuis des composants aléatoires.
 Utiliser une couche d’intégration dédiée :
 
 ```text
-features/github/
-```
-
-ou :
-
-```text
-lib/github/
+lib/github/                         # client HTTP / OAuth / mapping
+backend/features/02_github/         # services + règles métier
+frontend/features/02_homescreen/github/   # UI uniquement
 ```
 
 Le client GitHub est responsable de :
@@ -1964,9 +1969,10 @@ GitHub
 
 Workspace
 ├── documentation
-├── notes
 ├── journal de projet
 └── command center
+
+# notes feature = LIVRÉ V1 (voir PRD + feature_notes)
 
 Developer tooling
 ├── CLI
@@ -2119,20 +2125,21 @@ Séquence recommandée :
 
 # 63. Definition of Done V1
 
+> Aligné PRD **V1 = arbre + notes**. Pas de % progress / TanStack / webhooks.
+
 La V1 est considérée fonctionnelle lorsque :
 
-* un utilisateur peut s’authentifier
-* un utilisateur peut connecter GitHub de façon sécurisée
-* un utilisateur peut voir ses repositories
-* un repository peut devenir un projet
-* des branches peuvent être associées à des features
-* l’activité GitHub est synchronisée
-* les états de features reflètent une activité de développement significative
-* le dashboard présente la progression des projets
-* l’utilisateur A ne peut pas accéder aux données de l’utilisateur B
-* le RLS protège les ressources base de données
+* un utilisateur peut s’authentifier (messages d’erreur génériques)
+* un utilisateur peut connecter GitHub de façon sécurisée (credentials via RPC)
+* un utilisateur peut voir ses repositories sur le homescreen
+* l’ouverture d’un repository crée/assure le projet 1:1 et synchronise les features
+* l’UI repository affiche un **arbre** de branches (trunks / open / done)
+* une feature `done` survit à la suppression de la branche GitHub
+* l’utilisateur peut créer / sauver / supprimer des **notes** (texte + images) sur une feature
+* token GitHub expiré → redirect homescreen reconnect (pas d’overlay crash)
+* l’utilisateur A ne peut pas accéder aux données de l’utilisateur B (RLS)
 * les credentials GitHub sensibles n’atteignent jamais le navigateur
-* les workflows critiques ont des tests automatisés
+* le bucket notes n’est pas listable publiquement
 * l’application passe lint, typecheck et build
 
 ---
