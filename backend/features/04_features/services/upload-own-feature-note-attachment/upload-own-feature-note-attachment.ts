@@ -6,6 +6,7 @@ import {
   NOTE_ATTACHMENT_STORED_MIME,
   type NoteAttachment,
 } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
+import { isWebpBytes } from "@/lib/notes/is-webp-bytes/is-webp-bytes";
 import { createClient } from "@/lib/supabase/server/server";
 
 function sanitizeFileName(name: string): string {
@@ -50,6 +51,7 @@ export async function signOwnFeatureNoteAttachmentUrls(
 
 /**
  * Upload une image WebP dans le bucket notes (noteId obligatoire — pas de draft).
+ * Valide Content-Type + magic bytes RIFF/WEBP.
  */
 export async function uploadOwnFeatureNoteAttachment(input: {
   featureId: string;
@@ -62,6 +64,11 @@ export async function uploadOwnFeatureNoteAttachment(input: {
     return null;
   }
   if (input.file.size <= 0 || input.file.size > NOTE_ATTACHMENT_MAX_BYTES) {
+    return null;
+  }
+
+  const bytes = new Uint8Array(await input.file.arrayBuffer());
+  if (!isWebpBytes(bytes)) {
     return null;
   }
 
@@ -86,7 +93,6 @@ export async function uploadOwnFeatureNoteAttachment(input: {
   const safeName = sanitizeFileName(input.file.name);
   const path = `${user.id}/${input.featureId}/${input.noteId}/${attachmentId}-${safeName}.webp`;
 
-  const bytes = new Uint8Array(await input.file.arrayBuffer());
   const { error: uploadError } = await supabase.storage
     .from(NOTE_ATTACHMENT_BUCKET)
     .upload(path, bytes, {
@@ -120,6 +126,37 @@ export async function removeOwnFeatureNoteAttachmentFiles(
   }
   const supabase = await createClient();
   await supabase.storage.from(NOTE_ATTACHMENT_BUCKET).remove([...paths]);
+}
+
+/**
+ * GC orphelins d’un dossier note : objets storage absents de keptPaths.
+ * Best-effort — échec list/remove ignoré.
+ */
+export async function garbageCollectOwnFeatureNoteAttachmentFolder(input: {
+  userId: string;
+  featureId: string;
+  noteId: string;
+  keptPaths: readonly string[];
+}): Promise<void> {
+  const folder = `${input.userId}/${input.featureId}/${input.noteId}`;
+  const kept = new Set(input.keptPaths);
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.storage
+    .from(NOTE_ATTACHMENT_BUCKET)
+    .list(folder, { limit: 100 });
+
+  if (error || !data) {
+    return;
+  }
+
+  const orphans = data
+    .map((item) => item.name)
+    .filter((name) => typeof name === "string" && name.length > 0)
+    .map((name) => `${folder}/${name}`)
+    .filter((path) => !kept.has(path));
+
+  await removeOwnFeatureNoteAttachmentFiles(orphans);
 }
 
 export { toStoredAttachment };

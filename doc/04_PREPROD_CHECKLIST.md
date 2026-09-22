@@ -38,6 +38,7 @@ Docs : [`01_PRD`](./01_PRD.md) (V1 = arbre + notes) · [`03_DATABASE_DESIGN`](./
 
 ## Notes / Storage
 
+- [ ] Appliquer `count_own_feature_notes` (agrégat badges — plus de SELECT rows)
 - [ ] Appliquer `feature_note_attachments` + `feature_note_attachments_private` (bucket privé, SELECT owner-only)
 - [ ] Vérifier qu’une URL d’attachment **sans** signature renvoie 400/403
 - [ ] Vérifier remove image + save → objet storage disparu (GC serveur)

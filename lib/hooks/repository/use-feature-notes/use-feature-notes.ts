@@ -2,12 +2,8 @@
 
 import {
   areEditorAttachmentsEqual,
-  createNoteAttachmentId,
-  isPersistedEditorAttachment,
-  removeNoteAttachmentRefFromBlocks,
   toEditorNoteAttachment,
   type EditorNoteAttachment,
-  type NoteAttachment,
 } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
 import {
   createEmptyNoteDocument,
@@ -16,72 +12,38 @@ import {
   type NoteBlock,
 } from "@/backend/features/04_features/domain/note-block/note-block";
 import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
-import {
-  deleteOwnFeatureNoteAction,
-  listOwnFeatureNotesAction,
-  saveOwnFeatureNoteAction,
-} from "@/backend/features/04_features/mutations/feature-notes";
+import { listOwnFeatureNotesAction } from "@/backend/features/04_features/mutations/feature-notes";
 import {
   clearFeatureNoteDraft,
   clearLivePendingAttachmentFiles,
   collectPendingAttachmentFiles,
   readFeatureNoteDraft,
   readLastFeatureNoteDraft,
-  registerPendingAttachmentFile,
   rememberFeatureEditorNote,
   restorePendingAttachmentFiles,
   stashFeatureNoteDraft,
-  unregisterPendingAttachmentFile,
   type FeatureNoteDraft,
 } from "@/lib/notes/feature-note-draft-store/feature-note-draft-store";
+import {
+  prepareFeatureNoteAttachment,
+  removeFeatureNoteAttachment,
+  revokePendingEditorAttachments,
+} from "@/lib/notes/feature-notes-attachments/feature-notes-attachments";
+import {
+  applyFeatureNoteDraftView,
+  captureFeatureNoteDraft,
+  cloneBlocks,
+  cloneEditorAttachments,
+  pendingAttachmentIds,
+  revokeEditorAttachmentUrls,
+} from "@/lib/notes/feature-notes-editor-utils/feature-notes-editor-utils";
+import {
+  applySavedFeatureNote,
+  persistFeatureNote,
+  refreshFeatureNotesList,
+  removePersistedFeatureNote,
+} from "@/lib/notes/feature-notes-persistence/feature-notes-persistence";
 import { useEffect, useRef, useState, useTransition } from "react";
-
-function cloneBlocks(blocks: readonly NoteBlock[]): NoteBlock[] {
-  return blocks.map((block) => ({ ...block }));
-}
-
-function cloneEditorAttachments(
-  attachments: readonly EditorNoteAttachment[],
-): EditorNoteAttachment[] {
-  return attachments.map((item) => ({ ...item }));
-}
-
-function toPersistedAttachments(
-  attachments: readonly EditorNoteAttachment[],
-): NoteAttachment[] {
-  return attachments.filter(isPersistedEditorAttachment).map((item) => ({
-    id: item.id,
-    path: item.path,
-    url: item.url,
-    name: item.name,
-    mimeType: item.mimeType,
-    size: item.size,
-    label: item.label,
-  }));
-}
-
-function revokeEditorAttachmentUrl(attachment: EditorNoteAttachment): void {
-  if (
-    !isPersistedEditorAttachment(attachment) &&
-    attachment.url.startsWith("blob:")
-  ) {
-    URL.revokeObjectURL(attachment.url);
-  }
-}
-
-function revokeEditorAttachmentUrls(
-  attachments: readonly EditorNoteAttachment[],
-): void {
-  for (const attachment of attachments) {
-    revokeEditorAttachmentUrl(attachment);
-  }
-}
-
-function pendingIds(attachments: readonly EditorNoteAttachment[]): string[] {
-  return attachments
-    .filter((item) => !isPersistedEditorAttachment(item))
-    .map((item) => item.id);
-}
 
 /**
  * Notes DB d’une feature — rien en DB avant [ save ].
@@ -133,6 +95,9 @@ export function useFeatureNotes(featureId: string | null): {
   const [activeNoteId, setActiveNoteId] = useState<string | null>(
     () => bootDraft?.activeNoteId ?? null,
   );
+  const [expectedUpdatedAt, setExpectedUpdatedAt] = useState<string | null>(
+    null,
+  );
   const [activeFeatureId, setActiveFeatureId] = useState(featureId);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -142,6 +107,7 @@ export function useFeatureNotes(featureId: string | null): {
   const attachmentsRef = useRef(attachments);
   const baselineAttachmentsRef = useRef(baselineAttachments);
   const activeNoteIdRef = useRef(activeNoteId);
+  const expectedUpdatedAtRef = useRef(expectedUpdatedAt);
   const activeFeatureIdRef = useRef(activeFeatureId);
 
   useEffect(() => {
@@ -150,33 +116,23 @@ export function useFeatureNotes(featureId: string | null): {
     }
   }, [bootDraft]);
 
-  const captureDraftFromState = (
-    noteId: string | null,
-    nextBlocks: NoteBlock[],
-    nextBaselineBlocks: NoteBlock[],
-    nextAttachments: EditorNoteAttachment[],
-    nextBaselineAttachments: EditorNoteAttachment[],
-  ): FeatureNoteDraft => ({
-    activeNoteId: noteId,
-    blocks: cloneBlocks(nextBlocks),
-    baselineBlocks: cloneBlocks(nextBaselineBlocks),
-    attachments: cloneEditorAttachments(nextAttachments),
-    baselineAttachments: cloneEditorAttachments(nextBaselineAttachments),
-    pendingFiles: collectPendingAttachmentFiles(nextAttachments),
-  });
+  const draftSetters = {
+    setActiveNoteId,
+    setBlocks: setBlocksState,
+    setBaselineBlocks,
+    setAttachments,
+    setBaselineAttachments,
+  };
 
   const applyDraft = (
     draft: FeatureNoteDraft,
     previousAttachments: readonly EditorNoteAttachment[],
   ) => {
-    // Révoque seulement les blob URLs affichés — les File restent en mémoire live.
-    revokeEditorAttachmentUrls(previousAttachments);
-    restorePendingAttachmentFiles(draft.pendingFiles);
-    setActiveNoteId(draft.activeNoteId);
-    setBlocksState(cloneBlocks(draft.blocks));
-    setBaselineBlocks(cloneBlocks(draft.baselineBlocks));
-    setAttachments(cloneEditorAttachments(draft.attachments));
-    setBaselineAttachments(cloneEditorAttachments(draft.baselineAttachments));
+    applyFeatureNoteDraftView({
+      draft,
+      previousAttachments,
+      ...draftSetters,
+    });
   };
 
   const applyEmptyEditor = (
@@ -185,10 +141,13 @@ export function useFeatureNotes(featureId: string | null): {
   ) => {
     revokeEditorAttachmentUrls(previousAttachments);
     if (options?.discardPendingFiles) {
-      clearLivePendingAttachmentFiles(pendingIds(previousAttachments));
+      clearLivePendingAttachmentFiles(
+        pendingAttachmentIds(previousAttachments),
+      );
     }
     const nextEmpty = createEmptyNoteDocument();
     setActiveNoteId(null);
+    setExpectedUpdatedAt(null);
     setBlocksState(nextEmpty);
     setBaselineBlocks(cloneBlocks(nextEmpty));
     setAttachments([]);
@@ -205,13 +164,13 @@ export function useFeatureNotes(featureId: string | null): {
   ) => {
     stashFeatureNoteDraft(
       forFeatureId,
-      captureDraftFromState(
+      captureFeatureNoteDraft({
         noteId,
-        nextBlocks,
-        nextBaselineBlocks,
-        nextAttachments,
-        nextBaselineAttachments,
-      ),
+        blocks: nextBlocks,
+        baselineBlocks: nextBaselineBlocks,
+        attachments: nextAttachments,
+        baselineAttachments: nextBaselineAttachments,
+      }),
     );
   };
 
@@ -230,6 +189,7 @@ export function useFeatureNotes(featureId: string | null): {
     setActiveFeatureId(featureId);
     setNotes([]);
     setHasLoadedNotes(false);
+    setExpectedUpdatedAt(null);
     setError(null);
 
     if (featureId) {
@@ -247,23 +207,21 @@ export function useFeatureNotes(featureId: string | null): {
   useEffect(() => {
     blocksRef.current = blocks;
   }, [blocks]);
-
   useEffect(() => {
     baselineBlocksRef.current = baselineBlocks;
   }, [baselineBlocks]);
-
   useEffect(() => {
     attachmentsRef.current = attachments;
   }, [attachments]);
-
   useEffect(() => {
     baselineAttachmentsRef.current = baselineAttachments;
   }, [baselineAttachments]);
-
   useEffect(() => {
     activeNoteIdRef.current = activeNoteId;
   }, [activeNoteId]);
-
+  useEffect(() => {
+    expectedUpdatedAtRef.current = expectedUpdatedAt;
+  }, [expectedUpdatedAt]);
   useEffect(() => {
     activeFeatureIdRef.current = activeFeatureId;
   }, [activeFeatureId]);
@@ -286,6 +244,13 @@ export function useFeatureNotes(featureId: string | null): {
       }
       setNotes(next);
       setHasLoadedNotes(true);
+      const currentId = activeNoteIdRef.current;
+      if (currentId) {
+        const match = next.find((note) => note.id === currentId);
+        if (match) {
+          setExpectedUpdatedAt(match.updatedAt);
+        }
+      }
     });
     return () => {
       cancelled = true;
@@ -333,6 +298,8 @@ export function useFeatureNotes(featureId: string | null): {
     const draft = readFeatureNoteDraft(id, noteId);
     if (draft) {
       applyDraft(draft, attachments);
+      const match = notes.find((item) => item.id === noteId);
+      setExpectedUpdatedAt(match?.updatedAt ?? null);
       setError(null);
       return;
     }
@@ -346,6 +313,7 @@ export function useFeatureNotes(featureId: string | null): {
       note.blocks.length > 0 ? note.blocks : createEmptyNoteDocument();
     const nextAttachments = note.attachments.map(toEditorNoteAttachment);
     setActiveNoteId(note.id);
+    setExpectedUpdatedAt(note.updatedAt);
     setBlocksState(nextBlocks);
     setBaselineBlocks(cloneBlocks(nextBlocks));
     setAttachments(nextAttachments);
@@ -368,6 +336,7 @@ export function useFeatureNotes(featureId: string | null): {
       const draft = readFeatureNoteDraft(id, null);
       if (draft) {
         applyDraft(draft, attachments);
+        setExpectedUpdatedAt(null);
         setError(null);
         return;
       }
@@ -381,75 +350,41 @@ export function useFeatureNotes(featureId: string | null): {
     if (!id) {
       return;
     }
-    const current = attachmentsRef.current;
-    const hasText = hasNoteDocumentContent(blocksRef.current);
-    const hasFiles = current.length > 0;
-    if (!hasText && !hasFiles) {
-      return;
-    }
-    const dirtyText = isNoteDocumentDirty(
-      blocksRef.current,
-      baselineBlocksRef.current,
-    );
-    const dirtyFiles = !areEditorAttachmentsEqual(
-      current,
-      baselineAttachmentsRef.current,
-    );
-    if (!dirtyText && !dirtyFiles) {
-      return;
-    }
-
-    const previousNoteId = activeNoteIdRef.current;
 
     startTransition(async () => {
       setError(null);
-      const retained = toPersistedAttachments(current);
-      const formData = new FormData();
-      const pendingFiles = collectPendingAttachmentFiles(current);
-      for (const item of current) {
-        if (isPersistedEditorAttachment(item)) {
-          continue;
-        }
-        const file = pendingFiles.get(item.id);
-        if (file) {
-          formData.set(item.id, file);
-          formData.set(`label:${item.id}`, item.label);
-        }
-      }
-
-      const saved = await saveOwnFeatureNoteAction({
+      const result = await persistFeatureNote({
         featureId: id,
-        noteId: previousNoteId,
+        noteId: activeNoteIdRef.current,
+        expectedUpdatedAt: expectedUpdatedAtRef.current,
         blocks: blocksRef.current,
-        retainedAttachments: retained,
-        formData,
+        baselineBlocks: baselineBlocksRef.current,
+        attachments: attachmentsRef.current,
+        baselineAttachments: baselineAttachmentsRef.current,
       });
-      if (!saved) {
-        setError("Could not save note.");
+
+      if (!result.ok) {
+        if (result.reason === "persist") {
+          setError("Could not save note.");
+        }
         return;
       }
 
-      revokeEditorAttachmentUrls(
-        current.filter((item) => !isPersistedEditorAttachment(item)),
-      );
-      clearLivePendingAttachmentFiles(pendingIds(current));
+      applySavedFeatureNote({
+        saved: result.saved,
+        setActiveNoteId,
+        setBlocks: setBlocksState,
+        setBaselineBlocks,
+        setAttachments,
+        setBaselineAttachments,
+      });
+      setExpectedUpdatedAt(result.saved.updatedAt);
 
-      clearFeatureNoteDraft(id, previousNoteId);
-      clearFeatureNoteDraft(id, saved.id);
-      rememberFeatureEditorNote(id, saved.id);
-
-      const nextAttachments = saved.attachments.map(toEditorNoteAttachment);
-      setActiveNoteId(saved.id);
-      setBlocksState(saved.blocks);
-      setBaselineBlocks(cloneBlocks(saved.blocks));
-      setAttachments(nextAttachments);
-      setBaselineAttachments(cloneEditorAttachments(nextAttachments));
-
-      const refreshed = await listOwnFeatureNotesAction(id);
+      const refreshed = await refreshFeatureNotesList(id);
       if (refreshed === null) {
         setNotes((prev) => {
-          const without = prev.filter((note) => note.id !== saved.id);
-          return [saved, ...without];
+          const without = prev.filter((note) => note.id !== result.saved.id);
+          return [result.saved, ...without];
         });
         setError("Note saved, but list refresh failed.");
         return;
@@ -467,15 +402,13 @@ export function useFeatureNotes(featureId: string | null): {
 
     startTransition(async () => {
       setError(null);
-      const ok = await deleteOwnFeatureNoteAction({ featureId: id, noteId });
+      const ok = await removePersistedFeatureNote({ featureId: id, noteId });
       if (!ok) {
         setError("Could not delete note.");
         return;
       }
-      clearFeatureNoteDraft(id, noteId);
-      rememberFeatureEditorNote(id, null);
       applyEmptyEditor(attachmentsRef.current, { discardPendingFiles: true });
-      const refreshed = await listOwnFeatureNotesAction(id);
+      const refreshed = await refreshFeatureNotesList(id);
       if (refreshed === null) {
         setNotes((prev) => prev.filter((note) => note.id !== noteId));
         setError("Note deleted, but list refresh failed.");
@@ -492,24 +425,8 @@ export function useFeatureNotes(featureId: string | null): {
 
     startTransition(async () => {
       try {
-        const { convertImageFileToWebp } =
-          await import("@/lib/notes/convert-image-to-webp/convert-image-to-webp");
-        const webpFile = await convertImageFileToWebp(file);
-        const id = createNoteAttachmentId();
-        const url = URL.createObjectURL(webpFile);
-        registerPendingAttachmentFile(id, webpFile);
-        setAttachments((current) => [
-          ...current,
-          {
-            id,
-            path: null,
-            url,
-            name: webpFile.name,
-            mimeType: webpFile.type,
-            size: webpFile.size,
-            label,
-          },
-        ]);
+        const next = await prepareFeatureNoteAttachment({ file, label });
+        setAttachments((current) => [...current, next]);
         setError(null);
       } catch {
         setError("Could not prepare image.");
@@ -518,20 +435,16 @@ export function useFeatureNotes(featureId: string | null): {
   };
 
   const removeAttachment = (attachmentId: string) => {
-    const target = attachmentsRef.current.find(
-      (item) => item.id === attachmentId,
-    );
-    if (!target) {
+    const result = removeFeatureNoteAttachment({
+      attachmentId,
+      attachments: attachmentsRef.current,
+      blocks: blocksRef.current,
+    });
+    if (!result) {
       return;
     }
-    revokeEditorAttachmentUrl(target);
-    unregisterPendingAttachmentFile(attachmentId);
-    setAttachments((current) =>
-      current.filter((item) => item.id !== attachmentId),
-    );
-    setBlocks(
-      removeNoteAttachmentRefFromBlocks(blocksRef.current, target.label),
-    );
+    setAttachments(result.attachments);
+    setBlocks(result.blocks);
   };
 
   const clearNote = () => {
@@ -547,12 +460,10 @@ export function useFeatureNotes(featureId: string | null): {
       return;
     }
 
-    revokeEditorAttachmentUrls(
-      attachmentsRef.current.filter(
-        (item) => !isPersistedEditorAttachment(item),
-      ),
+    revokePendingEditorAttachments(attachmentsRef.current);
+    clearLivePendingAttachmentFiles(
+      pendingAttachmentIds(attachmentsRef.current),
     );
-    clearLivePendingAttachmentFiles(pendingIds(attachmentsRef.current));
 
     const id = featureId;
     if (id) {

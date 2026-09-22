@@ -16,6 +16,7 @@ export async function listOwnFeatureNotesAction(
 export async function saveOwnFeatureNoteAction(input: {
   featureId: string;
   noteId?: string | null;
+  expectedUpdatedAt?: string | null;
   blocks: NoteBlock[];
   retainedAttachments: NoteAttachment[];
   formData: FormData;
@@ -39,6 +40,7 @@ export async function saveOwnFeatureNoteAction(input: {
   return saveOwnFeatureNote({
     featureId: input.featureId,
     noteId: input.noteId,
+    expectedUpdatedAt: input.expectedUpdatedAt,
     blocks: input.blocks,
     retainedAttachments: input.retainedAttachments,
     newFiles,

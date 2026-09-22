@@ -10,6 +10,7 @@ import {
 } from "@/backend/features/04_features/domain/note-document/note-document";
 import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
 import {
+  garbageCollectOwnFeatureNoteAttachmentFolder,
   removeOwnFeatureNoteAttachmentFiles,
   signOwnFeatureNoteAttachmentUrls,
   toStoredAttachment,
@@ -20,6 +21,8 @@ import { createClient } from "@/lib/supabase/server/server";
 export type SaveOwnFeatureNoteInput = {
   featureId: string;
   noteId?: string | null;
+  /** Concurrence optimiste — requis si noteId (update). */
+  expectedUpdatedAt?: string | null;
   blocks: NoteBlock[];
   /** Attachments déjà en storage à conserver. */
   retainedAttachments: NoteAttachment[];
@@ -49,7 +52,8 @@ function toOwnFeatureNote(
 
 /**
  * Persiste une note : DB d’abord, puis upload images, puis MAJ attachments.
- * GC storage des images droppées côté serveur après succès.
+ * Update : WHERE updated_at = expectedUpdatedAt (conflit → null).
+ * GC storage : droppés + orphelins dossier note (best-effort).
  */
 export async function saveOwnFeatureNote(
   input: SaveOwnFeatureNoteInput,
@@ -79,6 +83,12 @@ export async function saveOwnFeatureNote(
     }),
   );
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
 
   let noteId = input.noteId ?? null;
   let previousAttachments: NoteAttachment[] = [];
@@ -89,21 +99,30 @@ export async function saveOwnFeatureNote(
   } | null = null;
 
   if (noteId) {
+    if (
+      typeof input.expectedUpdatedAt !== "string" ||
+      input.expectedUpdatedAt.length === 0
+    ) {
+      return null;
+    }
+
     const { data: existing } = await supabase
       .from("feature_notes")
-      .select("title, body, attachments")
+      .select("title, body, attachments, updated_at")
       .eq("id", noteId)
       .eq("feature_id", input.featureId)
       .maybeSingle();
 
-    if (existing) {
-      previousAttachments = parseNoteAttachments(existing.attachments);
-      previousSnapshot = {
-        title: existing.title,
-        body: existing.body,
-        attachments: existing.attachments,
-      };
+    if (!existing) {
+      return null;
     }
+
+    previousAttachments = parseNoteAttachments(existing.attachments);
+    previousSnapshot = {
+      title: existing.title,
+      body: existing.body,
+      attachments: existing.attachments,
+    };
   }
 
   let row: {
@@ -123,6 +142,7 @@ export async function saveOwnFeatureNote(
       })
       .eq("id", noteId)
       .eq("feature_id", input.featureId)
+      .eq("updated_at", input.expectedUpdatedAt as string)
       .select("id, feature_id, title, updated_at")
       .maybeSingle();
 
@@ -226,11 +246,18 @@ export async function saveOwnFeatureNote(
     row = data;
   }
 
-  const keptPaths = new Set(attachments.map((item) => item.path));
+  const keptPaths = attachments.map((item) => item.path);
+  const keptSet = new Set(keptPaths);
   const droppedPaths = previousAttachments
     .map((item) => item.path)
-    .filter((path) => !keptPaths.has(path));
+    .filter((path) => !keptSet.has(path));
   await removeOwnFeatureNoteAttachmentFiles(droppedPaths);
+  await garbageCollectOwnFeatureNoteAttachmentFolder({
+    userId: user.id,
+    featureId: input.featureId,
+    noteId,
+    keptPaths,
+  });
 
   const signed = await signOwnFeatureNoteAttachmentUrls(attachments);
   return toOwnFeatureNote(row, parsed.data, signed);

@@ -1,7 +1,14 @@
 import { createClient } from "@/lib/supabase/server/server";
+import { z } from "zod";
+
+const rowSchema = z.object({
+  feature_id: z.string().uuid(),
+  note_count: z.coerce.number().int().nonnegative(),
+});
 
 /**
- * Compte les notes par feature (owner only via RLS) — lecture légère pour badges.
+ * Compte les notes par feature via RPC agrégat (owner only via RLS INVOKER).
+ * Évite SELECT de toutes les rows (plafond PostgREST ~1000).
  */
 export async function countOwnFeatureNotes(
   featureIds: readonly string[],
@@ -11,22 +18,21 @@ export async function countOwnFeatureNotes(
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("feature_notes")
-    .select("feature_id")
-    .in("feature_id", [...featureIds]);
+  const { data, error } = await supabase.rpc("count_own_feature_notes", {
+    p_feature_ids: [...featureIds],
+  });
 
   if (error || !data) {
     return {};
   }
 
   const counts: Record<string, number> = {};
-  for (const row of data) {
-    const featureId = row.feature_id;
-    if (typeof featureId !== "string" || featureId.length === 0) {
+  for (const raw of data) {
+    const parsed = rowSchema.safeParse(raw);
+    if (!parsed.success) {
       continue;
     }
-    counts[featureId] = (counts[featureId] ?? 0) + 1;
+    counts[parsed.data.feature_id] = parsed.data.note_count;
   }
   return counts;
 }

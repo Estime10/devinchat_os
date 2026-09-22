@@ -1,15 +1,25 @@
 import { parseNoteAttachments } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
-import { removeOwnFeatureNoteAttachmentFiles } from "@/backend/features/04_features/services/upload-own-feature-note-attachment/upload-own-feature-note-attachment";
+import {
+  garbageCollectOwnFeatureNoteAttachmentFolder,
+  removeOwnFeatureNoteAttachmentFiles,
+} from "@/backend/features/04_features/services/upload-own-feature-note-attachment/upload-own-feature-note-attachment";
 import { createClient } from "@/lib/supabase/server/server";
 
 /**
  * Supprime une note + fichiers storage associés (RLS owner).
+ * GC dossier note best-effort après delete.
  */
 export async function deleteOwnFeatureNote(input: {
   featureId: string;
   noteId: string;
 }): Promise<boolean> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return false;
+  }
 
   const { data: existing } = await supabase
     .from("feature_notes")
@@ -32,5 +42,11 @@ export async function deleteOwnFeatureNote(input: {
   }
 
   await removeOwnFeatureNoteAttachmentFiles(paths);
+  await garbageCollectOwnFeatureNoteAttachmentFolder({
+    userId: user.id,
+    featureId: input.featureId,
+    noteId: input.noteId,
+    keptPaths: [],
+  });
   return true;
 }
