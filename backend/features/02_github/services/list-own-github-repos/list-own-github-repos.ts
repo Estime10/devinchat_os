@@ -29,9 +29,17 @@ export function githubReposCacheTag(userId: string): string {
 }
 
 /**
+ * Empreinte courte du token — invalide le cache Data quand OAuth renouvelle
+ * le secret (évite de resservir un snapshot `unauthorized` post-reconnect).
+ */
+function accessTokenCacheKey(accessToken: string): string {
+  return accessToken.slice(-12);
+}
+
+/**
  * Repos GitHub du user — token jamais renvoyé.
  * 401 → marque connexion expired.
- * Cache Data (60s) clé = userId → retour `/home` sans re-query GitHub.
+ * Cache Data : uniquement les succès (jamais unauthorized/error).
  */
 export async function listOwnGithubRepos(): Promise<OwnGithubReposResult> {
   if (!getSupabaseAdminEnv()) {
@@ -53,35 +61,23 @@ export async function listOwnGithubRepos(): Promise<OwnGithubReposResult> {
   }
 
   const loadRepos = unstable_cache(
-    async (): Promise<
-      | { kind: "ok"; data: OwnGithubRepos }
-      | { kind: "error" }
-      | { kind: "unauthorized" }
-    > => {
-      try {
-        const repos = await fetchGithubRepos(accessToken);
-        return { kind: "ok", data: splitReposByVisibility(repos) };
-      } catch (error) {
-        if (isGithubUnauthorizedError(error)) {
-          // Ne pas throw : Next/Turbopack remonte l’erreur en overlay RSC
-          // même si un catch externe la gère. Le status DB expired + redirect
-          // court-circuite les hits suivants ; reconnect invalide le tag.
-          return { kind: "unauthorized" };
-        }
-        return { kind: "error" };
-      }
-    },
-    ["own-github-repos", user.id],
+    async (token: string) =>
+      fetchGithubRepos(token).then(splitReposByVisibility),
+    ["own-github-repos", user.id, accessTokenCacheKey(accessToken)],
     {
       revalidate: GITHUB_REPOS_CACHE_REVALIDATE_SECONDS,
       tags: [githubReposCacheTag(user.id)],
     },
   );
 
-  const result = await loadRepos();
-  if (result.kind === "unauthorized") {
-    await markOwnGithubConnectionExpired();
-    return { kind: "unauthorized" };
+  try {
+    const data = await loadRepos(accessToken);
+    return { kind: "ok", data };
+  } catch (error) {
+    if (isGithubUnauthorizedError(error)) {
+      await markOwnGithubConnectionExpired();
+      return { kind: "unauthorized" };
+    }
+    return { kind: "error" };
   }
-  return result;
 }

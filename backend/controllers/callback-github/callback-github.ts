@@ -6,7 +6,7 @@ import { getGithubOAuthEnv } from "@/lib/github/env/env";
 import { exchangeGithubCode, fetchGithubUser } from "@/lib/github/oauth/oauth";
 import { GITHUB_OAUTH_STATE_COOKIE, ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -14,6 +14,13 @@ function homeWithError(request: Request, code: string) {
   const home = new URL(ROUTES.home, request.url);
   home.searchParams.set("github_error", code);
   return home;
+}
+
+/** Expire immédiat — pas de SWR stale post-OAuth. */
+function expireGithubCaches(userId: string) {
+  revalidateTag(githubReposCacheTag(userId), { expire: 0 });
+  revalidateTag(githubCommitActivityCacheTag(userId), { expire: 0 });
+  revalidatePath(ROUTES.home);
 }
 
 /**
@@ -80,8 +87,7 @@ export async function callbackGithubController(request: Request) {
       );
     }
 
-    revalidateTag(githubReposCacheTag(user.id), "minutes");
-    revalidateTag(githubCommitActivityCacheTag(user.id), "minutes");
+    expireGithubCaches(user.id);
   } catch {
     return NextResponse.redirect(homeWithError(request, "exchange"));
   }

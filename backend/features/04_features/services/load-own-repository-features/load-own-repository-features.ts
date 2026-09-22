@@ -33,11 +33,6 @@ export type OwnRepositoryFeaturesResult =
   | { kind: "unauthorized" }
   | { kind: "error" };
 
-type CachedFeaturePlanResult =
-  | { kind: "ok"; plan: FeatureBranchSyncPlan }
-  | { kind: "unauthorized" }
-  | { kind: "error" };
-
 /**
  * Use-case portfolio — miroir repo/projet + sync.
  * Cache = snapshot GitHub uniquement (pas de cookies dans unstable_cache).
@@ -98,27 +93,24 @@ export async function loadOwnRepositoryFeatures(
   }
 
   const loadPlan = unstable_cache(
-    async (): Promise<CachedFeaturePlanResult> => {
-      try {
-        const plan = await buildFeatureBranchSyncPlan({
-          accessToken,
-          owner: parsed.owner,
-          repo: parsed.repo,
-        });
-        if (!plan) {
-          return { kind: "error" };
-        }
-        return { kind: "ok", plan };
-      } catch (error) {
-        // Catch *dans* unstable_cache : sinon Turbopack remonte l’overlay RSC
-        // même si un catch externe gère l’erreur.
-        if (isGithubUnauthorizedError(error)) {
-          return { kind: "unauthorized" };
-        }
-        return { kind: "error" };
+    async (token: string) => {
+      const plan = await buildFeatureBranchSyncPlan({
+        accessToken: token,
+        owner: parsed.owner,
+        repo: parsed.repo,
+      });
+      if (!plan) {
+        throw new Error("feature-plan-empty");
       }
+      return plan;
     },
-    ["own-repository-feature-plan", user.id, parsed.owner, parsed.repo],
+    [
+      "own-repository-feature-plan",
+      user.id,
+      parsed.owner,
+      parsed.repo,
+      accessToken.slice(-12),
+    ],
     {
       revalidate: REPOSITORY_FEATURES_CACHE_SECONDS,
       tags: [
@@ -128,18 +120,20 @@ export async function loadOwnRepositoryFeatures(
     },
   );
 
-  const cached = await loadPlan();
-  if (cached.kind === "unauthorized") {
-    await markOwnGithubConnectionExpired();
-    return { kind: "unauthorized" };
-  }
-  if (cached.kind !== "ok") {
+  let plan: FeatureBranchSyncPlan;
+  try {
+    plan = await loadPlan(accessToken);
+  } catch (error) {
+    if (isGithubUnauthorizedError(error)) {
+      await markOwnGithubConnectionExpired();
+      return { kind: "unauthorized" };
+    }
     return { kind: "error" };
   }
 
   const features = await applyFeatureBranchSyncPlan({
     projectId: project.id,
-    plan: cached.plan,
+    plan,
   });
   if (!features) {
     return { kind: "error" };

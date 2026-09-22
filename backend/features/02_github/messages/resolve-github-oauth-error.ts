@@ -1,11 +1,11 @@
 const GITHUB_OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  config: "GitHub OAuth is not configured on the server.",
-  denied: "GitHub authorization was denied.",
-  state: "OAuth state mismatch. Try connecting again.",
+  config: "GitHub isn’t configured on this server yet.",
+  denied: "GitHub access was denied. Nothing was linked.",
+  state: "That sign-in link expired. Try connecting again.",
   conflict: "That GitHub account is already linked to another user.",
-  persist: "Could not save the GitHub connection. Try again.",
-  exchange: "GitHub token exchange failed. Try again.",
-  expired: "Your GitHub connection expired. Connect again.",
+  persist: "Couldn’t save the GitHub connection. Try again.",
+  exchange: "GitHub sign-in failed. Try again.",
+  expired: "Your GitHub session ended. Connect again to keep syncing.",
 };
 
 /**
