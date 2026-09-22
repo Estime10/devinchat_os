@@ -1,4 +1,7 @@
-import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
+import {
+  EMPTY_GITHUB_COMMIT_ACTIVITY_MAP,
+  type GithubCommitActivityMap,
+} from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
 import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item/github-repo-list-item";
 import { GithubRepoColumn } from "@/frontend/features/02_homescreen/github/ui/repos/column/github-repo-column";
 
@@ -14,7 +17,7 @@ type GithubReposBoardProps = {
 export function GithubReposBoard({
   privateRepos,
   publicRepos,
-  initialActivity = {},
+  initialActivity = EMPTY_GITHUB_COMMIT_ACTIVITY_MAP,
 }: GithubReposBoardProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">

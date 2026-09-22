@@ -39,6 +39,9 @@ const TONE_CLASSNAMES: Record<
   },
 };
 
+/** Stable no-op for skeletons / non-interactive bars (avoids GSAP effect churn). */
+export function noopProgressComplete(): void {}
+
 function formatBar(percent: number): string {
   const clamped = Math.min(100, Math.max(0, Math.round(percent)));
   const filled = Math.round((clamped / 100) * BAR_LENGTH);

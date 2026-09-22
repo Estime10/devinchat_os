@@ -25,7 +25,7 @@ export function GithubRepoRow({
   return (
     <Link
       href={href}
-      className="flex h-full w-full items-center rounded-none border-b border-glass-border/40 px-3 py-3 transition-colors hover:bg-fg-default/10"
+      className="flex w-full items-center rounded-none border-b border-glass-border/40 px-3 py-3 transition-colors hover:bg-fg-default/10"
     >
       <div className="flex w-full items-center justify-between gap-5">
         <div className="min-w-0 flex-1 space-y-1">

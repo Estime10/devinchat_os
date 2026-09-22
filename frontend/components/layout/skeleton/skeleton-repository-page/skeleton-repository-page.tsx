@@ -1,5 +1,8 @@
 import { repositoryBootProgress } from "@/frontend/components/boot/presets/presets";
-import { ProgressBar } from "@/lib/animation/progress-bar/progress-bar";
+import {
+  noopProgressComplete,
+  ProgressBar,
+} from "@/lib/animation/progress-bar/progress-bar";
 
 /**
  * Fallback Suspense portfolio — barre de boot centrée uniquement.
@@ -16,7 +19,7 @@ export function SkeletonRepositoryPage() {
         <ProgressBar
           isActive
           isComplete={false}
-          onComplete={() => undefined}
+          onComplete={noopProgressComplete}
           {...repositoryBootProgress}
           className="w-full text-center"
         />

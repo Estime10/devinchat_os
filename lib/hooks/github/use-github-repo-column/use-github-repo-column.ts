@@ -1,6 +1,9 @@
 "use client";
 
-import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
+import {
+  EMPTY_GITHUB_COMMIT_ACTIVITY_MAP,
+  type GithubCommitActivityMap,
+} from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
 import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item/github-repo-list-item";
 import { API } from "@/lib/api/endpoints";
 import {
@@ -15,6 +18,9 @@ import { REPOS_PAGE_SIZE } from "@/lib/hooks/github/repos-page-size/repos-page-s
 import { paginate } from "@/lib/pagination/paginate";
 import { ROUTES } from "@/lib/routes";
 import { useEffect, useRef, useState } from "react";
+
+/** Min delay between focus-triggered sparkline refreshes. */
+const FOCUS_REFRESH_COOLDOWN_MS = 60_000;
 
 export type GithubRepoColumnRow = {
   id: number;
@@ -31,7 +37,7 @@ export type GithubRepoColumnRow = {
  */
 export function useGithubRepoColumn(
   repos: GithubRepoListItem[],
-  initialActivity: GithubCommitActivityMap = {},
+  initialActivity: GithubCommitActivityMap = EMPTY_GITHUB_COMMIT_ACTIVITY_MAP,
 ) {
   const [page, setPage] = useState(1);
   const [fetchedActivity, setFetchedActivity] =
@@ -39,6 +45,10 @@ export function useGithubRepoColumn(
   const [refreshToken, setRefreshToken] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const isFirstRender = useRef(true);
+  const loadedKeysRef = useRef<Set<string>>(
+    new Set(Object.keys(initialActivity)),
+  );
+  const lastFocusRefreshAtRef = useRef(0);
 
   const activity: GithubCommitActivityMap = {
     ...initialActivity,
@@ -52,15 +62,29 @@ export function useGithubRepoColumn(
     totalItems,
   } = paginate(repos, page, REPOS_PAGE_SIZE);
 
+  // Clé stable — `items` est un nouveau tableau à chaque render.
+  const pageKey = items.map((repo) => repo.fullName).join("\0");
+
   useEffect(() => {
     const onFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusRefreshAtRef.current < FOCUS_REFRESH_COOLDOWN_MS) {
+        return;
+      }
+      lastFocusRefreshAtRef.current = now;
+      // Force reload of the visible page only.
+      for (const name of pageKey.split("\0")) {
+        if (name.length > 0) {
+          loadedKeysRef.current.delete(name);
+        }
+      }
       setRefreshToken((current) => current + 1);
     };
     window.addEventListener("focus", onFocus);
     return () => {
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [pageKey]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -77,17 +101,15 @@ export function useGithubRepoColumn(
   }, [safePage]);
 
   useEffect(() => {
-    const fullNames = items.map((repo) => repo.fullName);
+    const fullNames =
+      pageKey.length === 0 ? [] : pageKey.split("\0").filter(Boolean);
     if (fullNames.length === 0) {
       return;
     }
 
-    // 1er passage : uniquement les manquants (SSR). Focus / refresh : tout recharger.
-    const targets =
-      refreshToken === 0
-        ? fullNames.filter((name) => !(name in activity))
-        : fullNames;
-
+    const targets = fullNames.filter(
+      (name) => !loadedKeysRef.current.has(name),
+    );
     if (targets.length === 0) {
       return;
     }
@@ -95,9 +117,12 @@ export function useGithubRepoColumn(
     let cancelled = false;
 
     void (async () => {
-      const markMissingAsEmpty = () => {
+      const markLoaded = (map: GithubCommitActivityMap) => {
+        for (const name of targets) {
+          loadedKeysRef.current.add(name);
+        }
         setFetchedActivity((current) => {
-          const next = { ...current };
+          const next = { ...current, ...map };
           for (const name of targets) {
             if (!(name in next)) {
               next[name] = null;
@@ -114,10 +139,12 @@ export function useGithubRepoColumn(
           body: JSON.stringify({ fullNames: targets }),
         });
 
-        if (!response.ok || cancelled) {
-          if (!cancelled) {
-            markMissingAsEmpty();
-          }
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok) {
+          markLoaded({});
           return;
         }
 
@@ -125,25 +152,10 @@ export function useGithubRepoColumn(
           activity?: GithubCommitActivityMap;
         };
 
-        if (!payload.activity || cancelled) {
-          if (!cancelled) {
-            markMissingAsEmpty();
-          }
-          return;
-        }
-
-        setFetchedActivity((current) => {
-          const next = { ...current, ...payload.activity };
-          for (const name of targets) {
-            if (!(name in next)) {
-              next[name] = null;
-            }
-          }
-          return next;
-        });
+        markLoaded(payload.activity ?? {});
       } catch {
         if (!cancelled) {
-          markMissingAsEmpty();
+          markLoaded({});
         }
       }
     })();
@@ -151,9 +163,7 @@ export function useGithubRepoColumn(
     return () => {
       cancelled = true;
     };
-    // activity omis volontairement — sinon boucle après setFetchedActivity
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- items + refreshToken
-  }, [items, refreshToken]);
+  }, [pageKey, refreshToken]);
 
   const goToPage = (nextPage: number) => {
     const list = listRef.current;

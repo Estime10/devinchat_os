@@ -1,6 +1,7 @@
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature/own-feature";
 import type { FeatureTreeNode } from "@/backend/features/04_features/domain/build-feature-tree/build-feature-tree";
 import { RepositoryFeatureRow } from "@/frontend/features/03_repository/ui/row/repository-feature-row";
+import { EMPTY_NOTE_COUNT_BY_FEATURE_ID } from "@/lib/notes/empty-note-count-by-feature-id/empty-note-count-by-feature-id";
 
 type FeatureTreeNodeViewProps = {
   node: FeatureTreeNode;
@@ -16,7 +17,7 @@ export function FeatureTreeNodeView({
   node,
   selectedFeatureId,
   onSelectFeature,
-  noteCountByFeatureId = {},
+  noteCountByFeatureId = EMPTY_NOTE_COUNT_BY_FEATURE_ID,
 }: FeatureTreeNodeViewProps) {
   const { feature, children } = node;
   const hasChildren = children.length > 0;

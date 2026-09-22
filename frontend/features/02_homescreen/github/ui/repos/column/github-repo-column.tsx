@@ -1,6 +1,9 @@
 "use client";
 
-import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
+import {
+  EMPTY_GITHUB_COMMIT_ACTIVITY_MAP,
+  type GithubCommitActivityMap,
+} from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
 import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item/github-repo-list-item";
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
 import { GithubReposPagination } from "@/frontend/features/02_homescreen/github/ui/repos/pagination/github-repos-pagination";
@@ -21,7 +24,7 @@ export function GithubRepoColumn({
   title,
   repos,
   emptyLabel,
-  initialActivity = {},
+  initialActivity = EMPTY_GITHUB_COMMIT_ACTIVITY_MAP,
 }: GithubRepoColumnProps) {
   const { rows, safePage, totalPages, totalItems, listRef, goToPage } =
     useGithubRepoColumn(repos, initialActivity);
@@ -43,10 +46,10 @@ export function GithubRepoColumn({
         <div className="flex min-h-0 flex-1 flex-col gap-4">
           <ul
             ref={listRef}
-            className="flex min-h-0 flex-1 flex-col [&>li:last-child_a]:border-b-0"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto [&>li:last-child_a]:border-b-0"
           >
             {rows.map((row) => (
-              <li key={row.id} className="flex min-h-0 flex-1">
+              <li key={row.id} className="shrink-0">
                 <GithubRepoRow
                   fullName={row.fullName}
                   href={row.href}

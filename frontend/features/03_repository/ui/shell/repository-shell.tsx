@@ -1,11 +1,13 @@
 "use client";
 
 import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree/build-feature-tree";
+import type { OwnFeature } from "@/backend/features/04_features/types/own-feature/own-feature";
 import { RepositoryHeader } from "@/frontend/features/03_repository/ui/header/repository-header";
 import { RepositoryWorkspace } from "@/frontend/features/03_repository/ui/workspace/repository-workspace";
 import type { GithubRepo } from "@/lib/github/repos/repos";
 import { useFeatureNotes } from "@/lib/hooks/repository/use-feature-notes/use-feature-notes";
-import { useState } from "react";
+import { EMPTY_NOTE_COUNT_BY_FEATURE_ID } from "@/lib/notes/empty-note-count-by-feature-id/empty-note-count-by-feature-id";
+import { useCallback, useState } from "react";
 
 type RepositoryShellProps = {
   repo: GithubRepo;
@@ -21,12 +23,12 @@ export function RepositoryShell({
   repo,
   tree,
   loadError,
-  initialNoteCountByFeatureId = {},
+  initialNoteCountByFeatureId = EMPTY_NOTE_COUNT_BY_FEATURE_ID,
 }: RepositoryShellProps) {
   const [displayedFeatureId, setDisplayedFeatureId] = useState<string | null>(
     null,
   );
-  const [noteCountByFeatureId, setNoteCountByFeatureId] = useState<
+  const [persistedNoteCounts, setPersistedNoteCounts] = useState<
     Record<string, number>
   >(initialNoteCountByFeatureId);
   const {
@@ -51,16 +53,32 @@ export function RepositoryShell({
     removeAttachment,
   } = useFeatureNotes(displayedFeatureId);
 
-  // Sync badge count after notes load/save/delete (adjust state during render).
-  if (displayedFeatureId && hasLoadedNotes) {
-    const storedCount = noteCountByFeatureId[displayedFeatureId] ?? 0;
-    if (storedCount !== notes.length) {
-      setNoteCountByFeatureId({
-        ...noteCountByFeatureId,
-        [displayedFeatureId]: notes.length,
-      });
-    }
-  }
+  // Live override for the open feature — no setState-during-render.
+  const noteCountByFeatureId =
+    displayedFeatureId !== null && hasLoadedNotes
+      ? {
+          ...persistedNoteCounts,
+          [displayedFeatureId]: notes.length,
+        }
+      : persistedNoteCounts;
+
+  const handleDisplayedFeatureChange = useCallback(
+    (feature: OwnFeature | null) => {
+      if (displayedFeatureId !== null && hasLoadedNotes) {
+        setPersistedNoteCounts((current) => {
+          if (current[displayedFeatureId] === notes.length) {
+            return current;
+          }
+          return {
+            ...current,
+            [displayedFeatureId]: notes.length,
+          };
+        });
+      }
+      setDisplayedFeatureId(feature?.id ?? null);
+    },
+    [displayedFeatureId, hasLoadedNotes, notes.length],
+  );
 
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden py-5">
@@ -75,9 +93,7 @@ export function RepositoryShell({
           void addAttachment(file, label);
         }}
         onRemoveNoteAttachment={removeAttachment}
-        onDisplayedFeatureChange={(feature) => {
-          setDisplayedFeatureId(feature?.id ?? null);
-        }}
+        onDisplayedFeatureChange={handleDisplayedFeatureChange}
         notes={notes}
         activeNoteId={activeNoteId}
         canSaveNotes={canSave}
