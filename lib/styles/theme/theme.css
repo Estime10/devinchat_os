@@ -1,0 +1,66 @@
+/*
+  Tokens design globaux uniquement (couleurs, fonts, ombres).
+  Layout shell → lib/styles/layout/
+  Composants UI → lib/styles/ui/ (un fichier par surface)
+*/
+
+:root {
+  /* Canvas terminal */
+  --canvas-default: #0a0f0a;
+  --canvas-subtle: #050805;
+  --canvas-inset: #0d140d;
+
+  /* Phosphore — variants vert fluo */
+  --fg-default: #39ff14;
+  --fg-muted: #1fbf0f;
+  --fg-subtle: #0f7a0a;
+  --fg-dim: #0a4d08;
+
+  /* Phosphore — opacités dérivées (splash / glow) */
+  --phosphor-rgb: 57, 255, 20;
+  --phosphor-glow-soft: rgba(var(--phosphor-rgb), 0.35);
+  --phosphor-glow-strong: rgba(var(--phosphor-rgb), 0.8);
+  --phosphor-scanline: rgba(var(--phosphor-rgb), 0.045);
+  --phosphor-scanlines-opacity: 0.25;
+
+  --border-default: rgba(57, 255, 20, 0.28);
+  --border-muted: rgba(57, 255, 20, 0.12);
+
+  --accent-fg: #39ff14;
+  --accent-emphasis: #5cff3d;
+  --success-fg: #39ff14;
+  --danger-fg: #ff3b3b;
+
+  /* Surfaces claires (auth quotes / progress on-light) */
+  --on-light-fg: #000000;
+  --on-light-fg-muted: rgb(0 0 0 / 0.7);
+
+  /* Glass */
+  --glass-bg: rgba(10, 20, 10, 0.45);
+  --glass-border: rgba(57, 255, 20, 0.22);
+  --glass-shadow: 0 0 40px rgba(57, 255, 20, 0.06);
+
+  --background: var(--canvas-subtle);
+  --foreground: var(--fg-default);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-canvas-default: var(--canvas-default);
+  --color-canvas-subtle: var(--canvas-subtle);
+  --color-canvas-inset: var(--canvas-inset);
+  --color-fg-default: var(--fg-default);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-dim: var(--fg-dim);
+  --color-on-light-fg: var(--on-light-fg);
+  --color-on-light-fg-muted: var(--on-light-fg-muted);
+  --color-border-default: var(--border-default);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger-fg: var(--danger-fg);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+  --shadow-glass: var(--glass-shadow);
+  --font-sans: var(--font-mona-sans);
+}

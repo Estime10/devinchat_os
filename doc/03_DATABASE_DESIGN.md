@@ -5,31 +5,31 @@
 | Champ | Valeur |
 | --- | --- |
 | **Type de document** | `03_DATABASE_DESIGN` — Database Design / Data Model |
-| **Statut** | Draft / Baseline verrouillée V1 |
-| **Version** | 1.0 |
-| **Documents associés** | [`01_PRD.md`](./01_PRD.md) · [`02_TDD.md`](./02_TDD.md) |
-| **Documents suivants** | `04_API_CONTRACT` · `05_SECURITY_MODEL` · `06_IMPLEMENTATION` |
+| **Statut** | Aligné V1 live (arbre + notes) |
+| **Version** | 1.2 |
+| **Documents associés** | [`01_PRD.md`](./01_PRD.md) · [`02_TDD.md`](./02_TDD.md) · [`04_PREPROD_CHECKLIST.md`](./04_PREPROD_CHECKLIST.md) |
 | **SGBD** | PostgreSQL via Supabase |
 | **Principe** | Modèle minimal justifié par le domaine — pas de tables « pour faire sérieux » |
+| **Source de vérité schéma** | `supabase/migrations/*` (ce doc décrit le live ; le SQL gagne en cas de divergence) |
 
 ---
 
 ## 0. Comment lire ce document
 
-Ce document **verrouille** le modèle de données V1 avant tout code métier.
+> **V1 live = 6 tables** + bucket Storage notes.  
+> `activity_events` / `project_sync_state` / parenté `parent_feature_id` / webhooks = **hors V1** (vision historique encore présente plus bas, marquée comme telle).
 
-Il répond aux questions laissées ouvertes par le PRD et le TDD :
+Ce document décrit le modèle de données **implémenté**.
+
+Il répond à :
 
 1. Qui possède quoi ?
 2. Comment représenter GitHub ?
-3. Comment une branche devient une feature (et une sous-branche une sous-feature) ?
-4. Où stocker les événements ?
-5. Comment éviter les doublons à la sync ?
-6. Que faire si une branche / un repo disparaît ?
-7. Quelles tables ont du RLS ?
-8. Quelles contraintes PostgreSQL garantissent l’intégrité ?
-9. Quels indexes sont nécessaires ?
-10. Quels événements sont immuables ?
+3. Comment une branche devient une feature (arbre via `parent_branch_name`) ?
+4. Où vivent les notes + images ?
+5. Que faire si une branche / un repo disparaît ?
+6. Quelles tables ont du RLS ?
+7. Comment les credentials GitHub sont isolés ?
 
 ### Gouvernance
 
@@ -43,25 +43,27 @@ Il répond aux questions laissées ouvertes par le PRD et le TDD :
 
 | # | Décision |
 | --- | --- |
-| D1 | L’identité utilisateur est **Supabase Auth** (`auth.users`). Pas de table `users` applicative pour email/password. |
-| D2 | `profiles` existe uniquement pour les données applicatives non-auth. |
-| D3 | Un **project** appartient à un user via `owner_id` (V1 ownership-based). Pas de `project_members` en V1. |
-| D4 | Un project peut être lié à **un** repository GitHub (`github_repository_id`). |
+| D1 | L’identité utilisateur est **Supabase Auth** (`auth.users`). Pas de table `users` applicative. |
+| D2 | `profiles` = données applicatives non-auth (`display_name` seulement — pas d’`avatar_url`). |
+| D3 | Un **project** appartient à un user via `owner_id`. Pas de `project_members` en V1. |
+| D4 | Un project est lié à **un** repository GitHub (`github_repository_id`) — créé à l’ouverture repo. |
 | D5 | Une **connexion GitHub** appartient à un user ; les repos découverts appartiennent à cette connexion. |
-| D6 | Une **feature** a un UUID interne applicatif. Les IDs GitHub sont stockés séparément. |
+| D6 | Une **feature** a un UUID interne. Les IDs GitHub sont stockés séparément. |
 | D7 | **Pas de table `branches`**. La branche est un attribut de la feature (`branch_name`). |
-| D8 | Sous-feature = feature avec `parent_feature_id` (arbre à 1 niveau recommandé en V1 ; profondeur > 1 autorisée techniquement). |
-| D9 | Les événements GitHub (et futurs) vivent dans `activity_events`. |
-| D10 | Idempotence : `(source, external_id)` UNIQUE quand `external_id` est présent. |
-| D11 | Branche GitHub **supprimée** → `branch_name = NULL` ; la **feature n’est pas hard-deleted** (surtout si DONE). |
-| D12 | Repo déconnecté → lien projet nullifié / sync en erreur ; pas de cascade destructive sur l’historique features/events. |
-| D13 | RLS obligatoire sur toutes les tables contenant des données utilisateur. |
-| D14 | Tokens GitHub **chiffrés server-side** ; jamais exposés au client. Détail chiffrement → `05_SECURITY_MODEL`. |
-| D15 | Minimum de tables : **7 tables applicatives** (+ `auth.users` géré par Supabase). |
+| D8 | **Parenté V1 live** = `parent_branch_name` (nom de branche Git parent). `parent_feature_id` existe en SQL mais **n’est pas écrit** par le sync — hors usage V1. |
+| D9 | **Pas d’`activity_events` en V1 live.** Sync on-demand → upsert features directement. |
+| D10 | Idempotence sync : upsert par `(project_id, branch_name)`. |
+| D11 | Branche GitHub **supprimée** → si `merged` (legacy `done`) : `branch_name = NULL` (status conservé) ; sinon → `archived`. |
+| D12 | Repo déconnecté → lien projet nullifié ; pas de cascade destructive sur les features. |
+| D13 | RLS obligatoire sur toutes les tables user-data. |
+| D14 | Tokens GitHub chiffrés server-side ; SELECT credentials fermé ; **INSERT/UPDATE table** JWT fermés (`UPDATE(status)` seul) ; RPCs credentials **EXECUTE `service_role` only**. |
+| D15 | Tables applicatives V1 live : **6** (`profiles`, `github_connections`, `github_repositories`, `projects`, `features`, `feature_notes`) + bucket `feature-note-attachments`. |
+| D16 | Sync = **toutes** les branches GitHub du repo (pas seulement `feature/*`). Statuts runtime : `committed` \| `merged` \| `archived`. |
+| D17 | Notes : N par feature ; images WebP ; bucket **privé** ; URLs **signées** (TTL 1h) ; GC storage au save serveur. |
 
 ---
 
-## 2. Modèle conceptuel
+## 2. Modèle conceptuel (V1 live)
 
 ```text
 auth.users  (Supabase Auth — email / password / session)
@@ -72,39 +74,34 @@ auth.users  (Supabase Auth — email / password / session)
     │         │
     │         └── github_repositories
     │                   ▲
-    │                   │ (lien optionnel)
+    │                   │ (lien 1:1 à l’ouverture)
     └── projects ───────┘
               │
-              ├── features
-              │       │
-              │       └── features (parent_feature_id → sous-features)
-              │
-              ├── activity_events  (feature_id nullable)
-              │
-              └── project_sync_state
+              └── features
+                      │  parent_branch_name → arbre UI
+                      └── feature_notes
+                              └── Storage: feature-note-attachments (privé)
 ```
 
-### Boucle métier
+### Boucle métier live
 
 ```text
-User travaille dans GitHub / Cursor
+User ouvre /repository/{owner}/{repo}
         ↓
-Branch feature/*  (= Feature)
+OAuth token (RPC credentials) + ensure project 1:1 repo
         ↓
-Commits / Push / PR / Merge
+fetch branches + merge matrix trunks O(N) + parents PR
         ↓
-Webhook ou Sync
+upsert features (status committed|merged, parent_branch_name, last_pushed_at)
         ↓
-activity_events (idempotent)
+archive stale (merged sans branche / archived)
         ↓
-Mise à jour feature.status (+ branch_name)
-        ↓
-Dashboard
+UI arbre + notes persistées
 ```
 
 ---
 
-## 3. Inventaire des tables V1
+## 3. Inventaire des tables V1 live
 
 | Table | Rôle | RLS |
 | --- | --- | --- |
@@ -112,11 +109,12 @@ Dashboard
 | `projects` | Unité de pilotage ; propriétaire = user | Oui |
 | `github_connections` | Connexion OAuth GitHub du user | Oui |
 | `github_repositories` | Repos découverts via la connexion | Oui |
-| `features` | Feature / sous-feature + branche associée | Oui |
-| `activity_events` | Événements normalisés (append-oriented) | Oui |
-| `project_sync_state` | État de sync GitHub par projet | Oui |
+| `features` | Feature / branche + parenté Git + statut | Oui |
+| `feature_notes` | Notes utilisateur (texte + attachments) par feature | Oui |
 
-**Hors V1 (non créées) :** `project_members`, `github_branches`, `github_events`, vault secrets, teams, billing.
+**Storage V1 :** bucket `feature-note-attachments` — **privé**, SELECT/INSERT/UPDATE/DELETE owner-scoped (`auth.uid()` prefix) ; lecture via URLs signées (TTL 1h).
+
+**Hors V1 (non créées) :** `activity_events`, `project_sync_state`, `project_members`, `github_branches`, `github_events`, vault secrets, teams, billing.
 
 ---
 
@@ -138,6 +136,8 @@ CREATE TYPE feature_status AS ENUM (
   'done',
   'archived'
 );
+-- Runtime V1 n’écrit que : committed | merged | archived
+-- Les autres valeurs = legacy SQL (vision machine d’états) — non utilisées par le sync.
 
 CREATE TYPE github_connection_status AS ENUM (
   'active',
@@ -184,8 +184,7 @@ Données applicatives liées à l’utilisateur. L’auth (email/password) reste
 | Colonne | Type | Contraintes | Notes |
 | --- | --- | --- | --- |
 | `id` | `uuid` | PK, FK → `auth.users(id)` ON DELETE CASCADE | = `auth.uid()` |
-| `display_name` | `text` | NULL | Optionnel |
-| `avatar_url` | `text` | NULL | Optionnel |
+| `display_name` | `text` | NULL | Pseudo (signup) |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, DEFAULT `now()` | |
 
@@ -249,7 +248,24 @@ UNIQUE (github_user_id)       -- un compte GitHub lié à au plus un user app
 
 > Si on autorise plus tard plusieurs connexions (orgs), retirer `UNIQUE (user_id)`.
 
-**Sécurité :** cette table ne doit **jamais** être lue côté client avec les colonnes credentials. L’API mappe un DTO sans secrets. Détail → `05_SECURITY_MODEL`.
+**Sécurité :** les colonnes `credentials_ciphertext` / `credentials_nonce` ne sont **pas** SELECT-ables par `authenticated`. **INSERT** et **UPDATE** table JWT sont révoqués ; seul `UPDATE (status)` est accordé (ex. expired). Lecture via RPC `get_own_github_credentials(p_user_id)` ; écriture via RPC `upsert_own_github_connection(p_user_id, …)` — toutes deux SECURITY DEFINER, **EXECUTE réservé à `service_role`** (appel serveur après `getUser()`). L’API mappe un DTO sans secrets.
+
+---
+
+### 5.3b `feature_notes`
+
+| Colonne | Type | Contraintes | Notes |
+| --- | --- | --- | --- |
+| `id` | `uuid` | PK | |
+| `feature_id` | `uuid` | FK → `features` ON DELETE CASCADE | Owner via project |
+| `title` | `text` | NOT NULL | Dérivé du body |
+| `body` | `jsonb` | array de blocs éditeur | |
+| `attachments` | `jsonb` | array `{ id, path, url, name, mimeType, size, label }` | `url` vide en DB ; signée à la lecture |
+| `created_at` / `updated_at` | `timestamptz` | | |
+
+**RLS :** ALL via ownership `features → projects.owner_id = auth.uid()`.
+
+**Storage :** paths `{user_id}/{feature_id}/{note_id}/…` ; `url` **vide en DB** ; régénérée via `createSignedUrl` (TTL 1h) à la lecture ; GC des paths droppés dans `saveOwnFeatureNote`.
 
 ---
 
@@ -292,74 +308,61 @@ CREATE INDEX idx_github_repositories_full_name
 | --- | --- | --- | --- |
 | `id` | `uuid` | PK, DEFAULT `gen_random_uuid()` | UUID métier interne |
 | `project_id` | `uuid` | NOT NULL, FK → `projects(id)` ON DELETE CASCADE | |
-| `parent_feature_id` | `uuid` | NULL, FK → `features(id)` ON DELETE CASCADE | Sous-feature |
-| `name` | `text` | NOT NULL | ex. `Authentication` |
+| `parent_feature_id` | `uuid` | NULL, FK → `features(id)` | **Hors usage V1** — non écrit par le sync |
+| `name` | `text` | NOT NULL | Dérivé du nom de branche |
 | `description` | `text` | NULL | |
-| `branch_name` | `text` | NULL | ex. `feature/authentication` ; NULL si branche absente |
-| `status` | `feature_status` | NOT NULL, DEFAULT `'planned'` | |
-| `manual_override` | `boolean` | NOT NULL, DEFAULT `false` | Si true, sync auto ne force pas le status |
+| `branch_name` | `text` | NULL | NULL si branche GitHub absente (merged conservé) |
+| `parent_branch_name` | `text` | NULL | Parenté Git pour l’arbre UI |
+| `status` | `feature_status` | NOT NULL | Runtime V1 : `committed` \| `merged` \| `archived` |
+| `last_pushed_at` | `timestamptz` | NULL | Tip commit / push GitHub |
+| `manual_override` | `boolean` | NOT NULL, DEFAULT `false` | Réservé — non utilisé V1 |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, DEFAULT `now()` | |
 
 **Contraintes :**
 
 ```sql
--- Une branche active unique par projet (quand branch_name est renseigné)
 CREATE UNIQUE INDEX uq_features_project_branch_name
   ON features (project_id, branch_name)
   WHERE branch_name IS NOT NULL;
 
--- Empêcher qu’une feature soit son propre parent
 CHECK (parent_feature_id IS DISTINCT FROM id);
-
--- Parent doit appartenir au même projet (garantie via trigger ou contrainte deferred)
--- V1 : enforce dans le service + trigger CHECK (voir §9)
 ```
 
 **Indexes :**
 
 ```sql
 CREATE INDEX idx_features_project_id ON features (project_id);
-CREATE INDEX idx_features_parent_feature_id ON features (parent_feature_id)
-  WHERE parent_feature_id IS NOT NULL;
 CREATE INDEX idx_features_status ON features (project_id, status);
+CREATE INDEX idx_features_parent_branch_name ON features (project_id, parent_branch_name)
+  WHERE parent_branch_name IS NOT NULL;
 ```
 
-#### Mapping branche → feature (règle métier)
+#### Mapping branche → feature (règle V1 live)
 
 ```text
-feature/authentication
+Toute branche GitHub du repo
         ↓
-name        = Authentication
-branch_name = feature/authentication
-parent      = NULL
-
-feature/authentication-ui
-        ↓
-name        = Authentication UI
-branch_name = feature/authentication-ui
-parent      = Feature Authentication (si convention / association)
+name              = nom de branche (affichage)
+branch_name       = nom exact GitHub
+parent_branch_name = parenté (merge matrix trunks + PRs mergées)
+status            = committed | merged  (trunks / merges develop|main)
+last_pushed_at    = tip commit
 ```
 
-V1 : détection automatique des branches `feature/*` → création feature.  
-L’association parent/enfant peut être :
-
-- manuelle (utilisateur), ou
-- heuristique simple (préfixe commun) — **optionnelle**, non bloquante pour le schéma.
+`feature/*` = convention de nommage produit, **pas** un filtre de sync.  
+L’arbre UI est construit depuis `parent_branch_name` (`buildFeatureTree`), pas depuis `parent_feature_id`.
 
 #### Pas de table `branches` — justification
 
-Une branche GitHub n’est **pas** un objet métier durable. Elle est :
-
-- temporaire (souvent deleted après merge),
-- une représentation Git d’une feature,
-- déjà couverte par `features.branch_name` + `activity_events`.
-
-Créer `github_branches` ajouterait une couche redondante sans valeur V1.
+Une branche GitHub n’est **pas** un objet métier durable. Elle est temporaire et déjà couverte par `features.branch_name` + `parent_branch_name`.
 
 ---
 
-### 5.6 `activity_events`
+### 5.6 `activity_events` — **HORS V1 live**
+
+> Non créée. Conservée ici comme esquisse vision (timeline / idempotence events).  
+> V1 live : sync on-demand upsert `features` sans table d’événements.
 
 | Colonne | Type | Contraintes | Notes |
 | --- | --- | --- | --- |
@@ -410,7 +413,9 @@ Si une correction est nécessaire (ex. événement mal classé) : **insérer un 
 
 ---
 
-### 5.7 `project_sync_state`
+### 5.7 `project_sync_state` — **HORS V1 live**
+
+> Non créée. Sync on-demand à l’ouverture repo ; pas de watermark persisté.
 
 | Colonne | Type | Contraintes | Notes |
 | --- | --- | --- | --- |
@@ -426,7 +431,7 @@ Création : à la création du projet (ou à la première connexion repo).
 
 ---
 
-## 6. Diagramme relationnel (clés)
+## 6. Diagramme relationnel (clés) — V1 live
 
 ```text
 auth.users.id
@@ -435,15 +440,9 @@ auth.users.id
       │
       ├──── projects.owner_id
       │           │
-      │           ├──── features.project_id
-      │           │           │
-      │           │           └──── features.parent_feature_id
-      │           │
-      │           ├──── activity_events.project_id
-      │           │           │
-      │           │           └──── activity_events.feature_id → features.id
-      │           │
-      │           └──── project_sync_state.project_id
+      │           └──── features.project_id
+      │                       │
+      │                       └──── feature_notes.feature_id
       │
       └──── github_connections.user_id
                   │
@@ -456,76 +455,53 @@ auth.users.id
 
 ## 7. Stratégies de cycle de vie (suppression & déconnexion)
 
-### 7.1 Branche GitHub supprimée
+### 7.1 Branche GitHub supprimée (V1 live)
 
 ```text
-GitHub: branch deleted (feature/authentication)
+Sync on-demand : branche absente de la liste GitHub
         ↓
-activity_events INSERT type = branch_deleted
+archiveStaleOwnFeatures
         ↓
-features.branch_name = NULL
-        ↓
-SI status IN (merged, done)  → conserver status (DONE)
-SI status IN (planned..pr_open) → status = archived  (ou planned — règle produit)
+SI status = merged (legacy done)  → branch_name = NULL (status conservé)
+SINON             → status = archived
         ↓
 Feature RESTE en base (pas de hard delete)
 ```
 
-**Pourquoi :** après un merge, GitHub delete souvent la branche. Hard-delete de la feature ferait disparaître l’historique de progression — contraire au produit.
+**Pourquoi :** après un merge, GitHub delete souvent la branche. Hard-delete ferait disparaître l’historique `merged` — contraire au produit.
 
 ### 7.2 Feature hard-delete (utilisateur)
 
-Autorisé uniquement via action explicite utilisateur (ex. « supprimer la feature »).
-
-```text
-DELETE features WHERE id = ...
-  → CASCADE sous-features (parent_feature_id ON DELETE CASCADE)
-  → activity_events.feature_id = NULL (ON DELETE SET NULL)
-```
-
-Les événements projet restent visibles dans la timeline projet.
+Autorisé uniquement via action explicite (ex. supprimer une **note** ; hard-delete feature = hors UI V1).
 
 ### 7.3 Repository déconnecté du projet
 
 ```text
-User unlink repo
-        ↓
 projects.github_repository_id = NULL
         ↓
-project_sync_status → idle / error message "Repository disconnected"
-        ↓
-features + activity_events CONSERVÉS
+features CONSERVÉS
 ```
-
-Ne pas CASCADE DELETE les features quand le repo disparaît de la connexion.
 
 ### 7.4 Connexion GitHub révoquée / expirée
 
 ```text
 github_connections.status = expired | revoked
         ↓
-Sync bloquée
+UI homescreen : reconnect GitHub
         ↓
-UI: "Reconnect GitHub"
-        ↓
-Historique local (projects / features / events) CONSERVÉ
+Historique local (projects / features / notes) CONSERVÉ
 ```
-
-ON DELETE CASCADE sur `github_connections` → supprime les `github_repositories` en cache.  
-Les projets passent `github_repository_id = NULL` (SET NULL) — historique intact.
 
 ### 7.5 Suppression d’un projet
 
 ```text
-DELETE projects
-  → CASCADE features
-  → CASCADE activity_events
-  → CASCADE project_sync_state
+DELETE projects → CASCADE features → CASCADE feature_notes
+(+ objets Storage notes à GC côté service delete)
 ```
 
-Action destructive explicite, confirmée côté UI.
-
 ### 7.6 Suppression du compte utilisateur
+
+CASCADE via `owner_id` / `user_id` sur les tables applicatives.
 
 ```text
 DELETE auth.users
@@ -536,39 +512,29 @@ Conformité : données utilisateur retirées avec le compte.
 
 ---
 
-## 8. Idempotence & synchronisation
+## 8. Idempotence & synchronisation (V1 live)
 
-### 8.1 Webhook / sync
+### 8.1 Sync on-demand
 
 ```text
-Event reçu
+Ouverture /repository/{owner}/{repo}
   ↓
-Construire external_id stable
+buildFeatureBranchSyncPlan (GitHub GET, cache ~60s)
   ↓
-INSERT activity_events
+upsertOwnFeatureBranch par (project_id, branch_name)
   ↓
-UNIQUE (source, external_id) ?
-  ├── OK → traiter (update feature status)
-  └── CONFLICT → ignorer (déjà traité)
+archiveStaleOwnFeatures
 ```
 
-### 8.2 Construction de `external_id` (convention V1)
+Pas de webhooks. Pas d’`activity_events`. Idempotence = UNIQUE partiel `(project_id, branch_name)`.
 
-| Type | Exemple `external_id` |
-| --- | --- |
-| Push | `github:push:{delivery_id}` ou `github:push:{repo_id}:{after_sha}` |
-| PR opened/merged | `github:pr:{repo_id}:{pr_number}:{action}` |
-| Branch created/deleted | `github:branch:{repo_id}:{branch_name}:{action}:{ref_sha?}` |
-| Commit (si sync) | `github:commit:{repo_id}:{sha}` |
+### 8.2 Ordre de traitement
 
-Si GitHub fournit un `X-GitHub-Delivery` : le préférer comme base d’idempotence pour les webhooks.
-
-### 8.3 Ordre de traitement
-
-1. INSERT event (idempotent)
-2. Résoudre / créer feature via `branch_name`
-3. Mettre à jour `features.status` **sauf si** `manual_override = true`
-4. Mettre à jour `project_sync_state`
+1. Auth + connexion GitHub active
+2. Ensure project 1:1 repo
+3. Snapshot GitHub (branches + merge matrix trunks)
+4. Upsert features + archive stale
+5. Rendu arbre + notes
 
 ---
 
@@ -576,49 +542,21 @@ Si GitHub fournit un `X-GitHub-Delivery` : le préférer comme base d’idempote
 
 ### 9.1 Parent feature même projet
 
-PostgreSQL ne peut pas facilement exprimer « le parent doit avoir le même `project_id` » avec une FK seule.
-
-**V1 :** trigger :
-
-```sql
-CREATE OR REPLACE FUNCTION check_feature_parent_same_project()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.parent_feature_id IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM features p
-    WHERE p.id = NEW.parent_feature_id
-      AND p.project_id = NEW.project_id
-  ) THEN
-    RAISE EXCEPTION 'parent_feature_id must belong to the same project';
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
+> Trigger `check_feature_parent_same_project` — **non implémenté** (parenté V1 = `parent_branch_name`).
 
 ### 9.2 `updated_at` automatique
 
-Trigger générique `set_updated_at()` sur les tables mutables : `profiles`, `projects`, `features`, `github_connections`, `github_repositories`, `project_sync_state`.
-
-**Pas** sur `activity_events` (immuable).
+Trigger générique `set_updated_at()` sur : `profiles`, `projects`, `features`, `github_connections`, `github_repositories`, `feature_notes`.
 
 ### 9.3 Création profil à l’inscription
 
-```sql
--- Trigger after insert on auth.users → insert profiles (id)
-```
+Trigger / hook auth → insert `profiles` avec `display_name` depuis metadata signup.
 
 ---
 
 ## 10. Row Level Security (baseline)
 
-> Le détail threat model / chiffrement credentials est dans `05_SECURITY_MODEL`.  
-> Ici : **politiques d’accès data** obligatoires.
+> Politiques d’accès data obligatoires. Credentials : SELECT JWT fermé ; INSERT/UPDATE table JWT fermés (`UPDATE(status)` seul) ; RPCs DEFINER **service_role only**.
 
 ### 10.1 Principe
 
@@ -673,9 +611,18 @@ Activer RLS sur **toutes** les tables applicatives listées.
 #### `github_connections`
 
 ```sql
--- ALL : user_id = auth.uid()
--- ATTENTION : même avec RLS, ne jamais SELECT * côté client
---   → colonnes credentials uniquement via server/service context
+-- SELECT : colonnes non-credentials seulement (column grants)
+-- INSERT / UPDATE table : REVOKE pour authenticated/anon
+-- UPDATE (status) : GRANT — mark expired via JWT + RLS
+-- Lecture / écriture secrets : RPCs DEFINER EXECUTE service_role only
+--   get_own_github_credentials(p_user_id)
+--   upsert_own_github_connection(p_user_id, …)
+```
+
+#### `feature_notes`
+
+```sql
+-- ALL via ownership project (features → projects.owner_id)
 ```
 
 #### `github_repositories`
@@ -694,6 +641,7 @@ Activer RLS sur **toutes** les tables applicatives listées.
 | --- | --- | --- |
 | Browser / SSR user-scoped | `authenticated` + JWT | Lectures / mutations user via RLS |
 | Server Actions / Route Handlers | client user-scoped préféré | Respecte RLS |
+| Credentials GitHub RPCs | `service_role` (minimisé) | Justifié : JWT volé ne doit pas `EXECUTE` get/upsert ciphertext ; toujours après `getUser()` + `p_user_id` = session |
 | Webhooks / jobs sync | `service_role` (minimisé) | Justifié : pas de session user ; toujours scoped par `project_id` connu |
 | Anon | `anon` | Aucun accès data métier |
 
@@ -811,32 +759,30 @@ Les DTOs API **ne doivent pas** exposer `credentials_ciphertext`.
 
 ## 15. Réponses aux questions ouvertes (verrouillage)
 
-| Question | Réponse V1 |
+| Question | Réponse V1 live |
 | --- | --- |
 | Qui possède quoi ? | User possède projects + github_connection ; le reste dérive. |
-| `project_members` ? | Non en V1 ; `owner_id` suffit ; modèle extensible. |
+| `project_members` ? | Non ; `owner_id` suffit. |
 | Comment représenter GitHub ? | `github_connections` + `github_repositories` ; pas de clone. |
-| Branch → Feature ? | `features.branch_name` ; pas de table branches. |
-| Sous-branche → sous-feature ? | `parent_feature_id`. |
-| Où stocker les events ? | `activity_events`. |
-| Doublons sync ? | UNIQUE `(source, external_id)`. |
-| Branche supprimée ? | `branch_name = NULL` ; feature conservée. |
-| Repo déconnecté ? | SET NULL sur projet ; historique conservé. |
-| RLS partout ? | Oui sur toutes les tables user-data. |
-| Contraintes PG ? | FK, UNIQUE, CHECK, triggers parent, enums. |
-| Indexes ? | owner, project, branch, timeline, idempotence. |
-| Events immuables ? | Oui — append-only. Features/projects mutables. |
+| Branch → Feature ? | `features.branch_name` ; sync **toutes** les branches. |
+| Parenté arbre ? | `parent_branch_name` (pas `parent_feature_id`). |
+| Events / timeline ? | Hors V1 — pas de table `activity_events`. |
+| Doublons sync ? | UNIQUE `(project_id, branch_name)`. |
+| Branche supprimée ? | `merged` → `branch_name` NULL ; sinon `archived`. |
+| Notes ? | `feature_notes` + bucket privé + URLs signées. |
+| RLS partout ? | Oui sur les 6 tables user-data. |
+| Credentials ? | Chiffrés ; RPCs read/write `service_role` only ; JWT : pas de SELECT credentials, pas d’INSERT/UPDATE table (sauf `status`). |
 
 ---
 
 ## 16. Future Exploration (non créé en V1)
 
+- `activity_events` + `project_sync_state` (timeline / watermark)
+- Usage réel de `parent_feature_id` (arbre métier vs Git)
 - `project_members` / rôles collab
-- Table `github_branches` si besoin d’audit Git avancé
-- Sources d’activité hors GitHub (`vercel`, `manual`)
+- Table `github_branches` si audit Git avancé
+- Machine d’états riche + % progress
 - Soft-delete global (`deleted_at`)
-- Historique des changements de `feature.status` (table `feature_status_history`)
-- Partitionnement `activity_events` si volume élevé
 - Full-text search sur features / projects
 
 ---
@@ -845,26 +791,25 @@ Les DTOs API **ne doivent pas** exposer `credentials_ciphertext`.
 
 Le modèle V1 est valide si :
 
-1. Un user authentifié ne peut lire/écrire que ses données (prouvé via RLS + tests).
-2. Une feature peut exister **sans** branche (`branch_name` NULL) après merge/delete.
-3. Un même événement GitHub ne crée jamais deux lignes `activity_events`.
-4. La suppression d’une branche GitHub ne fait **pas** disparaître une feature `done`.
-5. Aucun token GitHub n’est stocké en clair ni exposé via une policy SELECT client.
-6. Le schéma tient en **7 tables** applicatives — pas plus sans justification.
+1. Un user authentifié ne peut lire/écrire que ses données (RLS).
+2. Une feature `merged` peut exister **sans** branche (`branch_name` NULL).
+3. La suppression d’une branche GitHub ne fait **pas** disparaître une feature `merged`.
+4. Aucun token GitHub n’est stocké en clair ; JWT ne peut ni SELECT credentials ni INSERT/UPDATE table `github_connections` (sauf `UPDATE(status)`) ; `EXECUTE` des RPCs credentials réservé à `service_role`.
+5. Les attachments notes ne sont pas listables publiquement (bucket privé + signed URLs).
+6. Le schéma live tient en **6 tables** + 1 bucket — pas plus sans justification.
 
 ---
 
-## 18. Prochaines étapes documentaires
+## 18. Docs associés
 
 ```text
-03  Database Design          ← ce document
-        ↓
-04  API Contract             ← endpoints / Server Actions dérivés du modèle
-        ↓
-05  Security Model / RLS     ← chiffrement credentials, threat model, policies SQL finales
-        ↓
-06  Implementation           ← migrations + code
+01  PRD                      ← scope produit V1 = arbre + notes
+02  TDD                      ← carte d’exploration (pas checklist)
+03  Database Design          ← ce document (aligné migrations)
+04  Preprod checklist        ← env / migrations à appliquer
 ```
+
+Migrations live : `supabase/migrations/`.
 
 ---
 
@@ -872,4 +817,5 @@ Le modèle V1 est valide si :
 
 | Version | Date | Changement |
 | --- | --- | --- |
-| 1.0 | 2026-09-18 | Baseline V1 — 7 tables, branch≠feature durable, idempotence, RLS, cycles de vie |
+| 1.2 | 2026-09-22 | Alignement V1 live — 6 tables, `parent_branch_name`, notes/storage, events hors V1 |
+| 1.0 | 2026-09-18 | Baseline initiale (vision 7 tables + events) |

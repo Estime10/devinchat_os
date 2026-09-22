@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevinChat OS
 
-## Getting Started
+Developer Progress OS — miroir GitHub → **arbre de branches** + **notes** (pas d’analyse de code).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Next.js (App Router) · React · TypeScript · Tailwind · Supabase · GitHub OAuth/API
+
+## Structure
+
+```text
+app/                      routing + API adapters (auth, github callback, repository)
+frontend/
+  components/             UI transverse (boot, layout, states)
+  features/
+    01_authentification/
+    02_homescreen/github/
+    03_repository/        arbre + notes
+backend/
+  controllers/            HTTP (connect/callback GitHub)
+  features/
+    01_authentification/
+    02_github/            OAuth, repos, credentials RPC
+    03_projects/          project 1:1 repo
+    04_features/          sync arbre, notes, attachments
+lib/                      supabase, github, crypto, notes drafts, hooks
+doc/                      01_PRD · 02_TDD · 03_DATABASE_DESIGN · 04_PREPROD_CHECKLIST
+supabase/migrations/      source de vérité schéma
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## V1 live (résumé)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Auth Supabase (email/password)
+2. GitHub OAuth → homescreen repos
+3. `/repository/{owner}/{repo}` → sync on-demand → arbre (`parent_branch_name`)
+4. Notes persistées par feature (WebP, bucket privé, URLs signées)
+5. Token expiré → redirect `/home?github_error=expired`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Scope détaillé : `doc/01_PRD.md` (section **V1 = arbre + notes**).
 
-## Learn More
+## Dev
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Variables utiles (serveur) : voir `doc/04_PREPROD_CHECKLIST.md` (Supabase + GitHub OAuth).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test:run
+pnpm build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Docs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. `doc/01_PRD.md` — produit / scope V1
+2. `doc/02_TDD.md` — carte d’exploration (pas checklist)
+3. `doc/03_DATABASE_DESIGN.md` — schéma live (6 tables + storage)
+4. `doc/04_PREPROD_CHECKLIST.md` — migrations / env pré-prod

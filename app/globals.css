@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* theme = tokens globaux · layout = shell · ui = une surface / fichier */
+@import "../lib/styles/theme/theme.css";
+@import "../lib/styles/layout/header/header.css";
+@import "../lib/styles/layout/page/page.css";
+@import "../lib/styles/ui/feature-card/feature-card.css";
+@import "../lib/styles/ui/feature-tree/feature-tree.css";
+@import "../lib/styles/ui/glass-panel/glass-panel.css";
+@import "../lib/styles/ui/progress-bar/progress-bar.css";
+@import "../lib/styles/ui/auth-split/auth-split.css";
+@import "../lib/styles/ui/splash-screen/splash-screen.css";
+@import "../lib/styles/ui/repository-workspace/repository-workspace.css";
+@import "../lib/styles/ui/note-editor/note-editor.css";

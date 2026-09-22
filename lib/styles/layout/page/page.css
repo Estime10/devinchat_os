@@ -1,0 +1,12 @@
+/*
+  Marges page / shell contenu.
+  Usage : px-layout-margin-x
+*/
+
+:root {
+  --layout-margin-x: 1.25rem;
+}
+
+@theme inline {
+  --spacing-layout-margin-x: var(--layout-margin-x);
+}

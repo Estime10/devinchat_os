@@ -1,0 +1,18 @@
+/*
+  Header shell — --header-height sync par <Header /> (ResizeObserver).
+  Fallback 3.5rem (= h-14) avant hydration.
+
+  IMPORTANT : le <header> doit garder une hauteur FIXE (h-14),
+  jamais h-header — sinon boucle ResizeObserver → page écrasée.
+
+  Usage consommateurs : my-header · var(--header-height)
+*/
+
+:root {
+  --header-height: 3.5rem;
+}
+
+@theme inline {
+  /* Espacement = hauteur header (marges glass-panel, etc.) — pas la barre elle-même */
+  --spacing-header: var(--header-height);
+}

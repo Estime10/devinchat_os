@@ -1,0 +1,330 @@
+import {
+  noteAttachmentsSchema,
+  parseNoteAttachments,
+  type NoteAttachment,
+} from "@/backend/features/04_features/domain/note-attachment/note-attachment";
+import type { NoteBlock } from "@/backend/features/04_features/domain/note-block/note-block";
+import {
+  deriveNoteTitle,
+  noteDocumentSchema,
+} from "@/backend/features/04_features/domain/note-document/note-document";
+import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
+import {
+  garbageCollectOwnFeatureNoteAttachmentFolder,
+  removeOwnFeatureNoteAttachmentFiles,
+  signOwnFeatureNoteAttachmentUrls,
+  toStoredAttachment,
+  uploadOwnFeatureNoteAttachment,
+} from "@/backend/features/04_features/services/upload-own-feature-note-attachment/upload-own-feature-note-attachment";
+import { createClient } from "@/lib/supabase/server/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export type SaveOwnFeatureNoteInput = {
+  featureId: string;
+  noteId?: string | null;
+  /** Concurrence optimiste — requis si noteId (update). */
+  expectedUpdatedAt?: string | null;
+  blocks: NoteBlock[];
+  /** Attachments déjà en storage à conserver. */
+  retainedAttachments: NoteAttachment[];
+  /** Nouveaux fichiers — uploadés seulement après création/MAJ de la note. */
+  newFiles: ReadonlyArray<{ id: string; file: File; label: string }>;
+};
+
+export type SaveOwnFeatureNoteResult =
+  | { kind: "ok"; note: OwnFeatureNote }
+  | { kind: "conflict"; currentUpdatedAt: string }
+  | { kind: "error"; currentUpdatedAt?: string };
+
+type NoteRow = {
+  id: string;
+  feature_id: string;
+  title: string;
+  updated_at: string;
+};
+
+function toOwnFeatureNote(
+  row: NoteRow,
+  blocks: NoteBlock[],
+  attachments: NoteAttachment[],
+): OwnFeatureNote {
+  return {
+    id: row.id,
+    featureId: row.feature_id,
+    title: row.title,
+    blocks,
+    attachments,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function readCurrentUpdatedAt(
+  supabase: SupabaseClient,
+  input: { featureId: string; noteId: string },
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("feature_notes")
+    .select("updated_at")
+    .eq("id", input.noteId)
+    .eq("feature_id", input.featureId)
+    .maybeSingle();
+
+  return typeof data?.updated_at === "string" ? data.updated_at : null;
+}
+
+/**
+ * Persiste une note : DB d’abord, puis upload images, puis MAJ attachments.
+ * Chaque UPDATE porte `.eq("updated_at", stamp)` (y compris rollback).
+ * Échec après mutation → renvoie `currentUpdatedAt` pour rafraîchir le token hook.
+ */
+export async function saveOwnFeatureNote(
+  input: SaveOwnFeatureNoteInput,
+): Promise<SaveOwnFeatureNoteResult> {
+  const parsed = noteDocumentSchema.safeParse(input.blocks);
+  if (!parsed.success) {
+    return { kind: "error" };
+  }
+
+  const retainedResult = noteAttachmentsSchema.safeParse(
+    input.retainedAttachments,
+  );
+  if (!retainedResult.success) {
+    return { kind: "error" };
+  }
+
+  const title = deriveNoteTitle(parsed.data);
+  const retained = retainedResult.data.map((item, index) =>
+    toStoredAttachment({
+      id: item.id,
+      path: item.path,
+      url: "",
+      name: item.name,
+      mimeType: item.mimeType,
+      size: item.size,
+      label: item.label ?? `image${index + 1}`,
+    }),
+  );
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { kind: "error" };
+  }
+
+  let noteId = input.noteId ?? null;
+  let previousAttachments: NoteAttachment[] = [];
+  let previousSnapshot: {
+    title: string;
+    body: unknown;
+    attachments: unknown;
+  } | null = null;
+
+  if (noteId) {
+    if (
+      typeof input.expectedUpdatedAt !== "string" ||
+      input.expectedUpdatedAt.length === 0
+    ) {
+      return { kind: "error" };
+    }
+
+    const { data: existing } = await supabase
+      .from("feature_notes")
+      .select("title, body, attachments, updated_at")
+      .eq("id", noteId)
+      .eq("feature_id", input.featureId)
+      .maybeSingle();
+
+    if (!existing) {
+      return { kind: "error" };
+    }
+
+    previousAttachments = parseNoteAttachments(existing.attachments);
+    previousSnapshot = {
+      title: existing.title,
+      body: existing.body,
+      attachments: existing.attachments,
+    };
+  }
+
+  let row: NoteRow | null = null;
+  /** Stamp optimiste courant (avance après chaque UPDATE réussi). */
+  let optimismStamp: string | null =
+    typeof input.expectedUpdatedAt === "string" &&
+    input.expectedUpdatedAt.length > 0
+      ? input.expectedUpdatedAt
+      : null;
+
+  if (noteId) {
+    const { data, error } = await supabase
+      .from("feature_notes")
+      .update({
+        title,
+        body: parsed.data,
+        attachments: retained,
+      })
+      .eq("id", noteId)
+      .eq("feature_id", input.featureId)
+      .eq("updated_at", optimismStamp as string)
+      .select("id, feature_id, title, updated_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      const current = await readCurrentUpdatedAt(supabase, {
+        featureId: input.featureId,
+        noteId,
+      });
+      if (current) {
+        return { kind: "conflict", currentUpdatedAt: current };
+      }
+      return { kind: "error" };
+    }
+    row = data;
+    optimismStamp = data.updated_at;
+  } else {
+    const { data, error } = await supabase
+      .from("feature_notes")
+      .insert({
+        feature_id: input.featureId,
+        title,
+        body: parsed.data,
+        attachments: retained,
+      })
+      .select("id, feature_id, title, updated_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      return { kind: "error" };
+    }
+    noteId = data.id;
+    row = data;
+    optimismStamp = data.updated_at;
+  }
+
+  if (!noteId || !row || !optimismStamp) {
+    return { kind: "error" };
+  }
+
+  const uploaded: NoteAttachment[] = [];
+  const isCreate = !input.noteId;
+
+  const rollbackUpdate = async (stamp: string): Promise<string | null> => {
+    if (!previousSnapshot || !noteId) {
+      return stamp;
+    }
+    const { data } = await supabase
+      .from("feature_notes")
+      .update({
+        title: previousSnapshot.title,
+        body: previousSnapshot.body,
+        attachments: previousSnapshot.attachments,
+      })
+      .eq("id", noteId)
+      .eq("feature_id", input.featureId)
+      .eq("updated_at", stamp)
+      .select("updated_at")
+      .maybeSingle();
+
+    if (typeof data?.updated_at === "string") {
+      return data.updated_at;
+    }
+    return readCurrentUpdatedAt(supabase, {
+      featureId: input.featureId,
+      noteId,
+    });
+  };
+
+  const failAfterTouch = async (
+    stamp: string,
+  ): Promise<SaveOwnFeatureNoteResult> => {
+    if (isCreate) {
+      await supabase
+        .from("feature_notes")
+        .delete()
+        .eq("id", noteId)
+        .eq("feature_id", input.featureId);
+      return { kind: "error" };
+    }
+    const currentUpdatedAt = (await rollbackUpdate(stamp)) ?? stamp;
+    return { kind: "error", currentUpdatedAt };
+  };
+
+  for (const item of input.newFiles) {
+    const attachment = await uploadOwnFeatureNoteAttachment({
+      featureId: input.featureId,
+      noteId,
+      file: item.file,
+      attachmentId: item.id,
+      label: item.label,
+    });
+    if (!attachment) {
+      await removeOwnFeatureNoteAttachmentFiles(
+        uploaded.map((file) => file.path),
+      );
+      return failAfterTouch(optimismStamp);
+    }
+    uploaded.push(toStoredAttachment(attachment));
+  }
+
+  const attachments = [...retained, ...uploaded];
+
+  if (uploaded.length > 0) {
+    const { data, error } = await supabase
+      .from("feature_notes")
+      .update({ attachments })
+      .eq("id", noteId)
+      .eq("feature_id", input.featureId)
+      .eq("updated_at", optimismStamp)
+      .select("id, feature_id, title, updated_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      await removeOwnFeatureNoteAttachmentFiles(
+        uploaded.map((file) => file.path),
+      );
+      const current = await readCurrentUpdatedAt(supabase, {
+        featureId: input.featureId,
+        noteId,
+      });
+      if (isCreate) {
+        await supabase
+          .from("feature_notes")
+          .delete()
+          .eq("id", noteId)
+          .eq("feature_id", input.featureId);
+        return { kind: "error" };
+      }
+      // 2ᵉ UPDATE raté : la ligne porte déjà le stamp post-1er UPDATE.
+      // Rollback avec ce stamp ; sinon renvoyer le stamp courant (pas le token périmé T0).
+      if (current === optimismStamp) {
+        const afterRollback = await rollbackUpdate(optimismStamp);
+        return {
+          kind: "error",
+          currentUpdatedAt: afterRollback ?? optimismStamp,
+        };
+      }
+      return {
+        kind: "conflict",
+        currentUpdatedAt: current ?? optimismStamp,
+      };
+    }
+    row = data;
+    optimismStamp = data.updated_at;
+  }
+
+  const keptPaths = attachments.map((item) => item.path);
+  const keptSet = new Set(keptPaths);
+  const droppedPaths = previousAttachments
+    .map((item) => item.path)
+    .filter((path) => !keptSet.has(path));
+  await removeOwnFeatureNoteAttachmentFiles(droppedPaths);
+  await garbageCollectOwnFeatureNoteAttachmentFolder({
+    userId: user.id,
+    featureId: input.featureId,
+    noteId,
+    keptPaths,
+  });
+
+  const signed = await signOwnFeatureNoteAttachmentUrls(attachments);
+  return { kind: "ok", note: toOwnFeatureNote(row, parsed.data, signed) };
+}
