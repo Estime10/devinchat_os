@@ -16,7 +16,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Session active : auth → homescreen.
-  // Splash volontairement accessible (preview anim cold boot — redirect plus tard).
+  // Splash reste accessible (boot puis redirect client home | auth).
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.home;

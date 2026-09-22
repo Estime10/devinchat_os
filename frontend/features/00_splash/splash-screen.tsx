@@ -7,11 +7,14 @@ import {
 } from "@/lib/content/splash-boot-lines";
 import { useSplashScreen } from "@/lib/hooks/splash/use-splash-screen/use-splash-screen";
 
+type SplashScreenProps = {
+  isAuthenticated: boolean;
+};
+
 /**
- * Splash PWA — logo → journal → progress.
- * Pas de redirect post-settle (preview / tuning).
+ * Splash PWA — logo → journal → progress → /home | /auth?mode=login.
  */
-export function SplashScreen() {
+export function SplashScreen({ isAuthenticated }: SplashScreenProps) {
   const {
     rootRef,
     stageRef,
@@ -21,7 +24,7 @@ export function SplashScreen() {
     progressActive,
     progressComplete,
     handleProgressComplete,
-  } = useSplashScreen();
+  } = useSplashScreen(isAuthenticated);
 
   return (
     <main
@@ -74,9 +77,9 @@ export function SplashScreen() {
             loadingLabel="loading os..."
             completedLabel="ready"
             loadingTargetPercent={90}
-            loadingDurationSeconds={2}
-            completeDurationSeconds={0.5}
-            redirectDelaySeconds={0.4}
+            loadingDurationSeconds={1}
+            completeDurationSeconds={0.35}
+            redirectDelaySeconds={0.5}
           />
         </div>
       </div>

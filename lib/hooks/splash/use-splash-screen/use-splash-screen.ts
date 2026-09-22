@@ -1,17 +1,22 @@
 "use client";
 
 import { startSplashBootAnimation } from "@/lib/animation/splash/start-splash-boot-animation";
+import { ROUTES } from "@/lib/routes";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Orchestration splash — logo → journal → progress (hors UI).
+ * Orchestration splash — logo → journal → progress → home | auth.
+ * La session est résolue côté serveur (prop) — pas de client Supabase ici.
  */
-export function useSplashScreen() {
+export function useSplashScreen(isAuthenticated: boolean) {
+  const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const brandRef = useRef<HTMLHeadingElement>(null);
   const bootRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const hasNavigatedRef = useRef(false);
 
   const [progressActive, setProgressActive] = useState(false);
   const [progressComplete, setProgressComplete] = useState(false);
@@ -26,7 +31,16 @@ export function useSplashScreen() {
     if (root) {
       root.dataset.splashPhase = "settled";
     }
-  }, []);
+
+    if (hasNavigatedRef.current) {
+      return;
+    }
+    hasNavigatedRef.current = true;
+
+    router.replace(
+      isAuthenticated ? ROUTES.home : ROUTES.authWithMode("login"),
+    );
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
     if (!progressActive || progressComplete) {
@@ -35,7 +49,7 @@ export function useSplashScreen() {
 
     const timer = window.setTimeout(() => {
       setProgressComplete(true);
-    }, 2200);
+    }, 1100);
 
     return () => {
       window.clearTimeout(timer);
