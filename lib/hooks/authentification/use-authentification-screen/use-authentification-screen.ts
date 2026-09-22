@@ -4,18 +4,19 @@ import { loginUser } from "@/backend/features/01_authentification/mutations/logi
 import { registerUser } from "@/backend/features/01_authentification/mutations/register-user/register-user";
 import { initialLoginState } from "@/backend/features/01_authentification/schemas/login-state/login-state";
 import { initialRegisterState } from "@/backend/features/01_authentification/schemas/register-state/register-state";
-import { ROUTES } from "@/lib/routes";
-import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useState } from "react";
+import { parseAuthMode, ROUTES, type AuthMode } from "@/lib/routes";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useActionState, useCallback } from "react";
 
-export type AuthMode = "register" | "login";
+export type { AuthMode };
 
 /**
- * Mode login/register + server actions + redirect post-boot — hors UI.
+ * Mode login/register (URL `?mode=`) + server actions + redirect post-boot.
  */
 export function useAuthentificationScreen() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const searchParams = useSearchParams();
+  const mode = parseAuthMode(searchParams.get("mode"));
 
   const [registerState, registerAction, registerPending] = useActionState(
     registerUser,
@@ -29,13 +30,13 @@ export function useAuthentificationScreen() {
   const pending = mode === "register" ? registerPending : loginPending;
   const isSuccess = mode === "register" ? registerState.ok : loginState.ok;
 
-  const showLogin = () => {
-    setMode("login");
-  };
+  const showLogin = useCallback(() => {
+    router.replace(ROUTES.authWithMode("login"));
+  }, [router]);
 
-  const showRegister = () => {
-    setMode("register");
-  };
+  const showRegister = useCallback(() => {
+    router.replace(ROUTES.authWithMode("register"));
+  }, [router]);
 
   const handleProgressComplete = useCallback(() => {
     router.push(ROUTES.home);

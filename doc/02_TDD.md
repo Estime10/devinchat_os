@@ -617,7 +617,8 @@ Structure cible (alignée sur le repo) :
 
 ```text
 app/
-├── (01_auth)/                 # page auth publique (/)
+├── (00_splash)/               # boot PWA — logo (/)
+├── (01_auth)/auth/            # auth publique (/auth?mode=login|register)
 ├── (02_protected)/            # zone session (/home, …)
 │   └── home/
 └── api/                       # adapters Next Route Handlers (minces)
@@ -628,6 +629,7 @@ frontend/
 │   ├── layout/
 │   └── states/                # error / empty / loading
 └── features/                  # UI produit — ordre = parcours user
+    ├── 00_splash/
     ├── 01_authentification/
     └── 02_homescreen/
         └── github/            # UI GitHub (pas un 03 top-level)

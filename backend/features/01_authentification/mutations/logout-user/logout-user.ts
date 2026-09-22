@@ -7,5 +7,5 @@ import { redirect } from "next/navigation";
 export async function logoutUser() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect(ROUTES.auth);
+  redirect(ROUTES.authWithMode("login"));
 }

@@ -19,6 +19,10 @@ export type ProgressBarProps = {
   className?: string;
   redirectDelaySeconds?: number;
   loadingTargetPercent?: number;
+  /** Durée montée vers loadingTargetPercent (défaut 6s). */
+  loadingDurationSeconds?: number;
+  /** Durée snap vers 100% (défaut 0.55s). */
+  completeDurationSeconds?: number;
   /** Auth panel clair (`on-light`) vs tokens app (`default`). */
   tone?: ProgressBarTone;
 };
@@ -63,6 +67,8 @@ export function ProgressBar({
   className = "",
   redirectDelaySeconds = DEFAULT_REDIRECT_DELAY_SECONDS,
   loadingTargetPercent = DEFAULT_LOADING_TARGET_PERCENT,
+  loadingDurationSeconds = 6,
+  completeDurationSeconds = 0.55,
   tone = "on-light",
 }: ProgressBarProps) {
   const [percent, setPercent] = useState(0);
@@ -123,7 +129,7 @@ export function ProgressBar({
 
     const tween = gsap.to(proxy, {
       value: isComplete ? 100 : loadingTargetPercent,
-      duration: isComplete ? 0.55 : 6,
+      duration: isComplete ? completeDurationSeconds : loadingDurationSeconds,
       ease: isComplete ? "power2.out" : "power1.out",
       onUpdate: syncPercent,
       onComplete: () => {
@@ -143,6 +149,8 @@ export function ProgressBar({
     onComplete,
     redirectDelaySeconds,
     loadingTargetPercent,
+    loadingDurationSeconds,
+    completeDurationSeconds,
   ]);
 
   return (
