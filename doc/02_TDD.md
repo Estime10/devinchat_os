@@ -617,11 +617,12 @@ Structure cible (alignée sur le repo) :
 
 ```text
 app/
-├── (00_splash)/               # boot PWA — logo (/)
+├── (00_splash)/               # boot + entrée PWA (/)
 ├── (01_auth)/auth/            # auth publique (/auth?mode=login|register)
 ├── (02_protected)/            # zone session (/home, …)
 │   └── home/
 └── api/                       # adapters Next Route Handlers (minces)
+# + app/manifest.ts · icons PWA · public/sw.js (installable)
 
 frontend/
 ├── components/                # UI transverse
