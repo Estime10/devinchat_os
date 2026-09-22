@@ -138,7 +138,7 @@ export async function applyFeatureBranchSyncPlan(input: {
 }
 
 /**
- * Sync branches → features (statut + branche de merge pour pyramide).
+ * Sync branches → features (statut + parenté pour arbre).
  */
 export async function syncOwnProjectFeatures(input: {
   projectId: string;

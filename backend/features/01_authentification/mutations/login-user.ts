@@ -38,7 +38,7 @@ export async function loginUser(
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: "Identifiants incorrects.",
       fieldErrors: {},
     };
   }

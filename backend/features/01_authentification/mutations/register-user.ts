@@ -50,7 +50,7 @@ export async function registerUser(
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: "Impossible de créer le compte. Réessaie plus tard.",
       fieldErrors: {},
     };
   }
