@@ -4,7 +4,7 @@
 
 > **Gel V1 :** le scope d’implémentation actif est défini dans [`01_PRD.md` — section « V1 = arbre + notes »](./01_PRD.md).  
 > Ce TDD n’est **pas** une checklist à dérouler. Webhooks, TanStack Query, progress %, `activity_events`, machine d’états riche restent **hors V1** tant que le PRD ne les dé-gèle pas.  
-> **Live aujourd’hui :** auth Supabase · OAuth GitHub · homescreen repos · sync on-demand → arbre (`parent_branch_name`) · notes persistées (Storage privé + URLs signées) · credentials via RPC.
+> **Live aujourd’hui :** auth Supabase · OAuth GitHub · homescreen repos · sync on-demand → arbre (`parent_branch_name`) · notes persistées (Storage privé + URLs signées) · credentials via RPCs `service_role` only (après `getUser`).
 
 | Champ | Valeur |
 | --- | --- |

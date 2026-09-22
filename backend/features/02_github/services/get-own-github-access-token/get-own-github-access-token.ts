@@ -1,5 +1,7 @@
 import { decryptAesGcm } from "@/lib/crypto/aes-gcm";
 import { getGithubOAuthEnv } from "@/lib/github/env/env";
+import { createAdminClient } from "@/lib/supabase/admin/admin";
+import { getSupabaseAdminEnv } from "@/lib/supabase/env/env";
 import { createClient } from "@/lib/supabase/server/server";
 import { cache } from "react";
 import { z } from "zod";
@@ -18,11 +20,15 @@ const rpcRowSchema = z.object({
 
 /**
  * Access token GitHub du user — server-only, jamais exposé au client.
- * Credentials via RPC (colonnes ciphertext interdites au SELECT JWT).
+ * Session via JWT user ; lecture ciphertext via RPC service_role (p_user_id).
  * `cache()` déduplique au sein d’une même requête RSC.
  */
 export const getOwnGithubAccessToken = cache(
   async (): Promise<string | null> => {
+    if (!getSupabaseAdminEnv()) {
+      return null;
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -32,7 +38,10 @@ export const getOwnGithubAccessToken = cache(
       return null;
     }
 
-    const { data, error } = await supabase.rpc("get_own_github_credentials");
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("get_own_github_credentials", {
+      p_user_id: user.id,
+    });
 
     if (error || !data) {
       return null;

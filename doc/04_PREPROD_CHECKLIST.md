@@ -20,10 +20,20 @@ Docs : [`01_PRD`](./01_PRD.md) (V1 = arbre + notes) · [`03_DATABASE_DESIGN`](./
   - `GITHUB_CLIENT_ID`
   - `GITHUB_CLIENT_SECRET`
   - `GITHUB_CREDENTIALS_ENCRYPTION_KEY` (`openssl rand -base64 32`)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` présent **server-only** (jamais `NEXT_PUBLIC_`)
 - [ ] Appliquer la migration `github_connections`
-- [ ] Appliquer la migration `github_credentials_column_guard` (SELECT credentials fermé ; RPC `get_own_github_credentials`)
-- [ ] Appliquer la migration `upsert_own_github_connection` (écriture credentials via RPC — corrige `github_error=persist` au reconnect)
-- [ ] Appliquer la migration `github_credentials_write_guard` (REVOKE INSERT/UPDATE sur colonnes credentials)
+- [ ] Appliquer la migration `github_credentials_column_guard` (SELECT credentials fermé)
+- [ ] Appliquer la migration `upsert_own_github_connection` (écriture credentials via RPC — signature remplacée ensuite par `server_only`)
+- [ ] Appliquer la migration `github_credentials_write_guard` (REVOKE colonnes credentials — étape intermédiaire)
+- [ ] Appliquer `github_credentials_server_only` (P0 : REVOKE INSERT/UPDATE table + GRANT `UPDATE(status)` ; RPCs credentials `service_role` only + `p_user_id`)
+- [ ] **Preuve P0.1** (SQL) :
+  - `has_column_privilege('authenticated','public.github_connections','credentials_ciphertext','UPDATE')` → `false`
+  - `has_table_privilege('authenticated','public.github_connections','INSERT')` → `false`
+  - `has_column_privilege('authenticated','public.github_connections','status','UPDATE')` → `true`
+- [ ] **Preuve P0.2** (SQL) :
+  - `has_function_privilege('authenticated','public.get_own_github_credentials(uuid)','EXECUTE')` → `false`
+  - `has_function_privilege('service_role','public.get_own_github_credentials(uuid)','EXECUTE')` → `true`
+- [ ] Vérifier `markOwnGithubConnectionExpired` (401 GitHub → `status = expired`)
 - [ ] Vérifier connect → authorize → callback → status `connected` sur `/home`
 
 ## Notes / Storage

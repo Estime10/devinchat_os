@@ -56,7 +56,7 @@ Il répond à :
 | D11 | Branche GitHub **supprimée** → si `merged` (legacy `done`) : `branch_name = NULL` (status conservé) ; sinon → `archived`. |
 | D12 | Repo déconnecté → lien projet nullifié ; pas de cascade destructive sur les features. |
 | D13 | RLS obligatoire sur toutes les tables user-data. |
-| D14 | Tokens GitHub chiffrés server-side ; SELECT + INSERT/UPDATE colonnes credentials **fermés** ; lecture/écriture via RPC DEFINER. |
+| D14 | Tokens GitHub chiffrés server-side ; SELECT credentials fermé ; **INSERT/UPDATE table** JWT fermés (`UPDATE(status)` seul) ; RPCs credentials **EXECUTE `service_role` only**. |
 | D15 | Tables applicatives V1 live : **6** (`profiles`, `github_connections`, `github_repositories`, `projects`, `features`, `feature_notes`) + bucket `feature-note-attachments`. |
 | D16 | Sync = **toutes** les branches GitHub du repo (pas seulement `feature/*`). Statuts runtime : `committed` \| `merged` \| `archived`. |
 | D17 | Notes : N par feature ; images WebP ; bucket **privé** ; URLs **signées** (TTL 1h) ; GC storage au save serveur. |
@@ -248,7 +248,7 @@ UNIQUE (github_user_id)       -- un compte GitHub lié à au plus un user app
 
 > Si on autorise plus tard plusieurs connexions (orgs), retirer `UNIQUE (user_id)`.
 
-**Sécurité :** les colonnes `credentials_ciphertext` / `credentials_nonce` ne sont **pas** SELECT-ables ni INSERT/UPDATE-ables par le rôle `authenticated`. Lecture via RPC `get_own_github_credentials()` ; écriture via RPC `upsert_own_github_connection()` — toutes deux SECURITY DEFINER, scoped `auth.uid()`. UPDATE JWT limité au non-secret (ex. `status` pour expired). L’API mappe un DTO sans secrets. Détail → `05_SECURITY_MODEL`.
+**Sécurité :** les colonnes `credentials_ciphertext` / `credentials_nonce` ne sont **pas** SELECT-ables par `authenticated`. **INSERT** et **UPDATE** table JWT sont révoqués ; seul `UPDATE (status)` est accordé (ex. expired). Lecture via RPC `get_own_github_credentials(p_user_id)` ; écriture via RPC `upsert_own_github_connection(p_user_id, …)` — toutes deux SECURITY DEFINER, **EXECUTE réservé à `service_role`** (appel serveur après `getUser()`). L’API mappe un DTO sans secrets.
 
 ---
 
@@ -556,7 +556,7 @@ Trigger / hook auth → insert `profiles` avec `display_name` depuis metadata si
 
 ## 10. Row Level Security (baseline)
 
-> Politiques d’accès data obligatoires. Credentials : SELECT + INSERT/UPDATE colonnes fermés ; RPCs DEFINER.
+> Politiques d’accès data obligatoires. Credentials : SELECT JWT fermé ; INSERT/UPDATE table JWT fermés (`UPDATE(status)` seul) ; RPCs DEFINER **service_role only**.
 
 ### 10.1 Principe
 
@@ -612,9 +612,11 @@ Activer RLS sur **toutes** les tables applicatives listées.
 
 ```sql
 -- SELECT : colonnes non-credentials seulement (column grants)
--- INSERT/UPDATE credentials_* : REVOKE — uniquement RPC upsert_own_github_connection
--- UPDATE status : table/colonne non-secret + RLS user_id = auth.uid()
--- Lecture secrets : RPC get_own_github_credentials()
+-- INSERT / UPDATE table : REVOKE pour authenticated/anon
+-- UPDATE (status) : GRANT — mark expired via JWT + RLS
+-- Lecture / écriture secrets : RPCs DEFINER EXECUTE service_role only
+--   get_own_github_credentials(p_user_id)
+--   upsert_own_github_connection(p_user_id, …)
 ```
 
 #### `feature_notes`
@@ -639,6 +641,7 @@ Activer RLS sur **toutes** les tables applicatives listées.
 | --- | --- | --- |
 | Browser / SSR user-scoped | `authenticated` + JWT | Lectures / mutations user via RLS |
 | Server Actions / Route Handlers | client user-scoped préféré | Respecte RLS |
+| Credentials GitHub RPCs | `service_role` (minimisé) | Justifié : JWT volé ne doit pas `EXECUTE` get/upsert ciphertext ; toujours après `getUser()` + `p_user_id` = session |
 | Webhooks / jobs sync | `service_role` (minimisé) | Justifié : pas de session user ; toujours scoped par `project_id` connu |
 | Anon | `anon` | Aucun accès data métier |
 
@@ -768,7 +771,7 @@ Les DTOs API **ne doivent pas** exposer `credentials_ciphertext`.
 | Branche supprimée ? | `merged` → `branch_name` NULL ; sinon `archived`. |
 | Notes ? | `feature_notes` + bucket privé + URLs signées. |
 | RLS partout ? | Oui sur les 6 tables user-data. |
-| Credentials ? | Chiffrés ; RPC read/write ; colonnes non SELECT/INSERT/UPDATE JWT. |
+| Credentials ? | Chiffrés ; RPCs read/write `service_role` only ; JWT : pas de SELECT credentials, pas d’INSERT/UPDATE table (sauf `status`). |
 
 ---
 
@@ -791,7 +794,7 @@ Le modèle V1 est valide si :
 1. Un user authentifié ne peut lire/écrire que ses données (RLS).
 2. Une feature `merged` peut exister **sans** branche (`branch_name` NULL).
 3. La suppression d’une branche GitHub ne fait **pas** disparaître une feature `merged`.
-4. Aucun token GitHub n’est stocké en clair ni exposé via SELECT / INSERT / UPDATE JWT sur les colonnes credentials.
+4. Aucun token GitHub n’est stocké en clair ; JWT ne peut ni SELECT credentials ni INSERT/UPDATE table `github_connections` (sauf `UPDATE(status)`) ; `EXECUTE` des RPCs credentials réservé à `service_role`.
 5. Les attachments notes ne sont pas listables publiquement (bucket privé + signed URLs).
 6. Le schéma live tient en **6 tables** + 1 bucket — pas plus sans justification.
 

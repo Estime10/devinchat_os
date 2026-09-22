@@ -31,9 +31,9 @@ Un **miroir d’activité Git** :
    - tier `done` (mergé) conservé même si GitHub efface la branche
 4. **Notes persistées** par feature (N notes, texte + images WebP, bucket Storage privé + URLs signées)
 5. Sync on-demand à l’ouverture (pas de webhooks)
-6. Tokens GitHub chiffrés server-side ; credentials **non lisibles** via SELECT JWT ; écriture credentials **uniquement** via RPC
+6. Tokens GitHub chiffrés server-side ; credentials **non SELECT**-ables JWT ; **INSERT/UPDATE table** JWT fermés (`UPDATE(status)` seul) ; RPCs credentials **EXECUTE `service_role` only** (appel serveur après `getUser`)
 7. Compares GitHub **O(N)** (bases trunk seulement)
-8. Features `done` **conservées** si GitHub efface la branche (`branch_name = null`)
+8. Features `merged` **conservées** si GitHub efface la branche (`branch_name = null`)
 9. Appels GitHub API **GET only** (`githubApiGet`) — le scope OAuth `repo` reste requis pour les privés (limitation OAuth App ; GitHub App = hors V1)
 
 ### Ce que V1 *n’est pas* (gelé — ne pas implémenter)
@@ -363,7 +363,7 @@ Règles :
 4. Page repository : sync on-demand → **arbre** de branches (`parent_branch_name`) + tiers trunks / open / done
 5. Statuts runtime : `committed` \| `merged` \| `archived` (pas de % progress)
 6. **Notes persistées** par feature (texte + images WebP, bucket privé, URLs signées)
-7. Credentials GitHub chiffrés ; lecture/écriture via RPC uniquement
+7. Credentials GitHub chiffrés ; JWT sans SELECT/INSERT/UPDATE credentials ; RPCs read/write réservés `service_role` (server-only)
 
 ### Explicitement hors scope V1
 

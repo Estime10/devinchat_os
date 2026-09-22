@@ -6,6 +6,7 @@ import {
   type GithubRepo,
 } from "@/lib/github/repos/repos";
 import { isGithubUnauthorizedError } from "@/lib/github/github-unauthorized-error/github-unauthorized-error";
+import { getSupabaseAdminEnv } from "@/lib/supabase/env/env";
 import { createClient } from "@/lib/supabase/server/server";
 import { unstable_cache } from "next/cache";
 
@@ -33,6 +34,10 @@ export function githubReposCacheTag(userId: string): string {
  * Cache Data (60s) clé = userId → retour `/home` sans re-query GitHub.
  */
 export async function listOwnGithubRepos(): Promise<OwnGithubReposResult> {
+  if (!getSupabaseAdminEnv()) {
+    return { kind: "error" };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

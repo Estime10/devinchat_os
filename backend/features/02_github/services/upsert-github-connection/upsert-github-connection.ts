@@ -1,6 +1,8 @@
 import { encryptAesGcm } from "@/lib/crypto/aes-gcm";
 import { getGithubOAuthEnv } from "@/lib/github/env/env";
 import type { GithubTokenResponse } from "@/lib/github/oauth/oauth";
+import { createAdminClient } from "@/lib/supabase/admin/admin";
+import { getSupabaseAdminEnv } from "@/lib/supabase/env/env";
 import { createClient } from "@/lib/supabase/server/server";
 
 export type UpsertGithubConnectionInput = {
@@ -12,7 +14,7 @@ export type UpsertGithubConnectionInput = {
 
 /**
  * Upsert connexion GitHub — credentials chiffrés avant écriture.
- * Écriture via RPC (colonnes ciphertext interdites au SELECT/RETURNING JWT).
+ * Session via JWT user ; écriture ciphertext via RPC service_role (p_user_id).
  */
 export async function upsertGithubConnection(
   input: UpsertGithubConnectionInput,
@@ -29,6 +31,10 @@ export async function upsertGithubConnection(
     .map((scope) => scope.trim())
     .filter(Boolean);
 
+  if (!getSupabaseAdminEnv()) {
+    return { ok: false, reason: "persist" };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +44,9 @@ export async function upsertGithubConnection(
     return { ok: false, reason: "persist" };
   }
 
-  const { error } = await supabase.rpc("upsert_own_github_connection", {
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("upsert_own_github_connection", {
+    p_user_id: user.id,
     p_github_user_id: input.githubUserId,
     p_github_login: input.githubLogin,
     p_credentials_ciphertext: encrypted.ciphertext,
