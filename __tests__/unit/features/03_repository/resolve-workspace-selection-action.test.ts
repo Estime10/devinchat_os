@@ -1,4 +1,4 @@
-import { resolveWorkspaceSelectionAction } from "@/lib/hooks/repository/resolve-workspace-selection-action";
+import { resolveWorkspaceSelectionAction } from "@/lib/hooks/repository/resolve-workspace-selection-action/resolve-workspace-selection-action";
 import { describe, expect, it } from "vitest";
 
 describe("resolveWorkspaceSelectionAction", () => {

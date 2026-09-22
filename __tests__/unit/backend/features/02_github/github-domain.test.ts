@@ -1,7 +1,7 @@
-import { canReconnectGithub } from "@/backend/features/02_github/domain/can-reconnect-github";
-import { isGithubConnectionActive } from "@/backend/features/02_github/domain/is-github-connection-active";
+import { canReconnectGithub } from "@/backend/features/02_github/domain/can-reconnect-github/can-reconnect-github";
+import { isGithubConnectionActive } from "@/backend/features/02_github/domain/is-github-connection-active/is-github-connection-active";
 import { resolveGithubOAuthError } from "@/backend/features/02_github/messages/resolve-github-oauth-error";
-import type { OwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection";
+import type { OwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection/get-own-github-connection";
 import { describe, expect, it } from "vitest";
 
 function connection(

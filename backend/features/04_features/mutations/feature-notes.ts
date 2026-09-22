@@ -1,11 +1,11 @@
 "use server";
 
-import type { NoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
-import type { NoteBlock } from "@/backend/features/04_features/domain/note-block";
-import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
-import { deleteOwnFeatureNote } from "@/backend/features/04_features/services/delete-own-feature-note";
-import { listOwnFeatureNotes } from "@/backend/features/04_features/services/list-own-feature-notes";
-import { saveOwnFeatureNote } from "@/backend/features/04_features/services/save-own-feature-note";
+import type { NoteAttachment } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
+import type { NoteBlock } from "@/backend/features/04_features/domain/note-block/note-block";
+import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
+import { deleteOwnFeatureNote } from "@/backend/features/04_features/services/delete-own-feature-note/delete-own-feature-note";
+import { listOwnFeatureNotes } from "@/backend/features/04_features/services/list-own-feature-notes/list-own-feature-notes";
+import { saveOwnFeatureNote } from "@/backend/features/04_features/services/save-own-feature-note/save-own-feature-note";
 
 export async function listOwnFeatureNotesAction(
   featureId: string,

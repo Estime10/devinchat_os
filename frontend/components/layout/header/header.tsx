@@ -1,7 +1,7 @@
 "use client";
 
-import { logoutUser } from "@/backend/features/01_authentification/mutations/logout-user";
-import { ReconnectGithubActions } from "@/frontend/features/02_homescreen/github/ui/actions/reconnect-github-actions";
+import { logoutUser } from "@/backend/features/01_authentification/mutations/logout-user/logout-user";
+import { ReconnectGithubActions } from "@/frontend/features/02_homescreen/github/ui/actions/reconnect-github-actions/reconnect-github-actions";
 import { GithubConnectionBadge } from "@/frontend/features/02_homescreen/github/ui/badge/github-connection-badge";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
+import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
 
 type RepositoryNoteChipsProps = {
   notes: OwnFeatureNote[];

@@ -1,5 +1,5 @@
 import { isProtectedPath, ROUTES } from "@/lib/routes";
-import { updateSession } from "@/lib/supabase/proxy";
+import { updateSession } from "@/lib/supabase/proxy/proxy";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {

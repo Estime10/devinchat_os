@@ -1,10 +1,10 @@
 "use client";
 
 import { GlassPanel } from "@/frontend/components/ui/glass/glass-panel";
-import { LoginForm } from "@/frontend/features/01_authentification/ui/form/login-form";
-import { RegistrationForm } from "@/frontend/features/01_authentification/ui/form/registration-form";
+import { LoginForm } from "@/frontend/features/01_authentification/ui/form/login-form/login-form";
+import { RegistrationForm } from "@/frontend/features/01_authentification/ui/form/registration-form/registration-form";
 import { AuthQuotesPanel } from "@/frontend/features/01_authentification/ui/quotes/auth-quotes-panel";
-import { useAuthentificationScreen } from "@/lib/hooks/authentification/use-authentification-screen";
+import { useAuthentificationScreen } from "@/lib/hooks/authentification/use-authentification-screen/use-authentification-screen";
 
 /**
  * Présentation auth — état dans useAuthentificationScreen.

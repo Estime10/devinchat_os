@@ -1,5 +1,5 @@
 import { StateError } from "@/frontend/components/states/error/state-error";
-import { ConnectGithubActions } from "@/frontend/features/02_homescreen/github/ui/actions/connect-github-actions";
+import { ConnectGithubActions } from "@/frontend/features/02_homescreen/github/ui/actions/connect-github-actions/connect-github-actions";
 import { ConnectGithubHeader } from "@/frontend/features/02_homescreen/github/ui/header/connect-github-header";
 
 type ConnectGithubPanelProps = {

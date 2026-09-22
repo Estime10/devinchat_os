@@ -1,5 +1,5 @@
-import { Sparkline } from "@/frontend/components/ui/sparkline/sparkline";
-import { SparklineSkeleton } from "@/frontend/components/ui/sparkline/sparkline-skeleton";
+import { Sparkline } from "@/frontend/components/ui/sparkline/sparkline/sparkline";
+import { SparklineSkeleton } from "@/frontend/components/ui/sparkline/sparkline-skeleton/sparkline-skeleton";
 import Link from "next/link";
 
 type GithubRepoRowProps = {

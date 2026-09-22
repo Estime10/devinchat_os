@@ -1,13 +1,13 @@
 "use client";
 
-import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
-import type { EditorNoteAttachment } from "@/backend/features/04_features/domain/note-attachment";
-import type { NoteBlock } from "@/backend/features/04_features/domain/note-block";
-import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
-import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
-import { RepositoryFeatureSection } from "@/frontend/features/03_repository/ui/section/repository-feature-section";
-import { RepositoryNotesSection } from "@/frontend/features/03_repository/ui/section/repository-notes-section";
-import { useRepositoryWorkspace } from "@/lib/hooks/repository/use-repository-workspace";
+import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree/build-feature-tree";
+import type { EditorNoteAttachment } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
+import type { NoteBlock } from "@/backend/features/04_features/domain/note-block/note-block";
+import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
+import type { OwnFeature } from "@/backend/features/04_features/types/own-feature/own-feature";
+import { RepositoryFeatureSection } from "@/frontend/features/03_repository/ui/section/repository-feature-section/repository-feature-section";
+import { RepositoryNotesSection } from "@/frontend/features/03_repository/ui/section/repository-notes-section/repository-notes-section";
+import { useRepositoryWorkspace } from "@/lib/hooks/repository/use-repository-workspace/use-repository-workspace";
 import { useEffect, useRef } from "react";
 
 type RepositoryWorkspaceProps = {
@@ -32,6 +32,7 @@ type RepositoryWorkspaceProps = {
   onDeleteNotes: () => void;
   onNewNote: () => void;
   onSelectNote: (noteId: string) => void;
+  noteCountByFeatureId?: Record<string, number>;
 };
 
 /**
@@ -59,6 +60,7 @@ export function RepositoryWorkspace({
   onDeleteNotes,
   onNewNote,
   onSelectNote,
+  noteCountByFeatureId,
 }: RepositoryWorkspaceProps) {
   const {
     selectedId,
@@ -88,6 +90,7 @@ export function RepositoryWorkspace({
             loadError={loadError}
             selectedFeatureId={selectedId}
             onSelectFeature={selectFeature}
+            noteCountByFeatureId={noteCountByFeatureId}
           />
         </div>
       </div>

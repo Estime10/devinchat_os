@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthProgressBar } from "@/lib/animation/progress-bar/variants/auth";
-import { useAuthQuotesPanel } from "@/lib/hooks/authentification/use-auth-quotes-panel";
+import { useAuthQuotesPanel } from "@/lib/hooks/authentification/use-auth-quotes-panel/use-auth-quotes-panel";
 
 type AuthQuotesPanelProps = {
   isRegistering: boolean;

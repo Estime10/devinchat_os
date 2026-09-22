@@ -1,4 +1,4 @@
-import { Skeleton } from "@/frontend/components/layout/skeleton/skeleton";
+import { Skeleton } from "@/frontend/components/layout/skeleton/skeleton/skeleton";
 import { SuspenseStream } from "@/frontend/components/async/suspense-stream";
 import { HomeScreen } from "@/frontend/features/02_homescreen/home-screen";
 

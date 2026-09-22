@@ -1,7 +1,7 @@
 import {
   githubHomescreenErrorMessage,
   loadGithubHomescreen,
-} from "@/backend/features/02_github/services/load-github-homescreen";
+} from "@/backend/features/02_github/services/load-github-homescreen/load-github-homescreen";
 import { StateError } from "@/frontend/components/states/error/state-error";
 import { ConnectGithubPanel } from "@/frontend/features/02_homescreen/github/ui/panel/connect-github-panel";
 import { GithubReposBoard } from "@/frontend/features/02_homescreen/github/ui/repos/board/github-repos-board";

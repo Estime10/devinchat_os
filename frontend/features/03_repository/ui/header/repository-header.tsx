@@ -1,5 +1,5 @@
-import { formatAbsoluteDate } from "@/lib/format/absolute-date";
-import type { GithubRepo } from "@/lib/github/repos";
+import { formatAbsoluteDate } from "@/lib/format/absolute-date/absolute-date";
+import type { GithubRepo } from "@/lib/github/repos/repos";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 

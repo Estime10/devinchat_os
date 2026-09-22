@@ -1,14 +1,15 @@
-import type { OwnFeature } from "@/backend/features/04_features/types/own-feature";
-import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree";
+import type { OwnFeature } from "@/backend/features/04_features/types/own-feature/own-feature";
+import type { FeatureTree } from "@/backend/features/04_features/domain/build-feature-tree/build-feature-tree";
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
 import { StateError } from "@/frontend/components/states/error/state-error";
-import { FeatureTree as FeatureTreeView } from "@/frontend/features/03_repository/ui/tree/feature-tree";
+import { FeatureTree as FeatureTreeView } from "@/frontend/features/03_repository/ui/tree/feature-tree/feature-tree";
 
 type RepositoryFeatureListProps = {
   tree: FeatureTree | null;
   loadError: boolean;
   selectedFeatureId: string | null;
   onSelectFeature: (feature: OwnFeature) => void;
+  noteCountByFeatureId?: Record<string, number>;
 };
 
 /**
@@ -19,6 +20,7 @@ export function RepositoryFeatureList({
   loadError,
   selectedFeatureId,
   onSelectFeature,
+  noteCountByFeatureId,
 }: RepositoryFeatureListProps) {
   if (loadError) {
     return (
@@ -35,6 +37,7 @@ export function RepositoryFeatureList({
       tree={tree}
       selectedFeatureId={selectedFeatureId}
       onSelectFeature={onSelectFeature}
+      noteCountByFeatureId={noteCountByFeatureId}
     />
   );
 }

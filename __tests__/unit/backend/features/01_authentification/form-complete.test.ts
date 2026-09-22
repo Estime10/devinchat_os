@@ -1,5 +1,5 @@
-import { isLoginFormComplete } from "@/backend/features/01_authentification/schemas/login-form-complete";
-import { isRegisterFormComplete } from "@/backend/features/01_authentification/schemas/register-form-complete";
+import { isLoginFormComplete } from "@/backend/features/01_authentification/schemas/login-form-complete/login-form-complete";
+import { isRegisterFormComplete } from "@/backend/features/01_authentification/schemas/register-form-complete/register-form-complete";
 import { describe, expect, it } from "vitest";
 
 function formDataFrom(entries: Record<string, string>): FormData {

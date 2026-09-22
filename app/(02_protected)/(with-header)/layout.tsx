@@ -1,7 +1,7 @@
-import { canReconnectGithub } from "@/backend/features/02_github/domain/can-reconnect-github";
-import { isGithubConnectionActive } from "@/backend/features/02_github/domain/is-github-connection-active";
+import { canReconnectGithub } from "@/backend/features/02_github/domain/can-reconnect-github/can-reconnect-github";
+import { isGithubConnectionActive } from "@/backend/features/02_github/domain/is-github-connection-active/is-github-connection-active";
 import { getOwnProfile } from "@/backend/features/01_authentification/services/get-own-profile";
-import { getOwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection";
+import { getOwnGithubConnection } from "@/backend/features/02_github/services/get-own-github-connection/get-own-github-connection";
 import { Header } from "@/frontend/components/layout/header/header";
 import { requireUser } from "@/lib/auth/require-user";
 

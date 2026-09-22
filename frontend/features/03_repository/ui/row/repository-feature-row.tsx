@@ -5,20 +5,22 @@ type RepositoryFeatureRowProps = {
   branchName: string;
   status: string;
   mergedInto: string | null;
+  noteCount?: number;
   selected?: boolean;
   onSelect?: () => void;
 };
 
 /**
  * Carte feature — même échelle typo homescreen.
+ * Badge notes : coin haut-droit, légèrement hors de la card.
  * Enfants en pointer-events:none → curseur main sur toute la surface.
- * `mergedInto` = parent_branch_name (ligne d’arbre + libellé).
  */
 export function RepositoryFeatureRow({
   name,
   branchName,
   status,
   mergedInto,
+  noteCount = 0,
   selected = false,
   onSelect,
 }: RepositoryFeatureRowProps) {
@@ -26,8 +28,19 @@ export function RepositoryFeatureRow({
     ? "feature-card feature-card-selected"
     : "feature-card";
 
+  const showNotesBadge = noteCount > 0;
+
   const body = (
     <>
+      {showNotesBadge ? (
+        <span
+          className="feature-card-notes-badge"
+          aria-label={`${noteCount} note${noteCount > 1 ? "s" : ""}`}
+          title={`${noteCount} note${noteCount > 1 ? "s" : ""}`}
+        >
+          {noteCount > 99 ? "99+" : noteCount}
+        </span>
+      ) : null}
       <p className="truncate font-sans text-sm leading-snug text-white">
         {name}
       </p>

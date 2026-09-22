@@ -1,11 +1,11 @@
 "use client";
 
-import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map";
-import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item";
+import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
+import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item/github-repo-list-item";
 import { StateEmpty } from "@/frontend/components/states/empty/state-empty";
 import { GithubReposPagination } from "@/frontend/features/02_homescreen/github/ui/repos/pagination/github-repos-pagination";
 import { GithubRepoRow } from "@/frontend/features/02_homescreen/github/ui/repos/row/github-repo-row";
-import { useGithubRepoColumn } from "@/lib/hooks/github/use-github-repo-column";
+import { useGithubRepoColumn } from "@/lib/hooks/github/use-github-repo-column/use-github-repo-column";
 
 type GithubRepoColumnProps = {
   title: string;

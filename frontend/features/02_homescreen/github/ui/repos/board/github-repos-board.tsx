@@ -1,5 +1,5 @@
-import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map";
-import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item";
+import type { GithubCommitActivityMap } from "@/backend/features/02_github/types/github-commit-activity-map/github-commit-activity-map";
+import type { GithubRepoListItem } from "@/backend/features/02_github/types/github-repo-list-item/github-repo-list-item";
 import { GithubRepoColumn } from "@/frontend/features/02_homescreen/github/ui/repos/column/github-repo-column";
 
 type GithubReposBoardProps = {
