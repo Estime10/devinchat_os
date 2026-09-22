@@ -17,6 +17,7 @@ import {
   uploadOwnFeatureNoteAttachment,
 } from "@/backend/features/04_features/services/upload-own-feature-note-attachment/upload-own-feature-note-attachment";
 import { createClient } from "@/lib/supabase/server/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type SaveOwnFeatureNoteInput = {
   featureId: string;
@@ -30,13 +31,20 @@ export type SaveOwnFeatureNoteInput = {
   newFiles: ReadonlyArray<{ id: string; file: File; label: string }>;
 };
 
+export type SaveOwnFeatureNoteResult =
+  | { kind: "ok"; note: OwnFeatureNote }
+  | { kind: "conflict"; currentUpdatedAt: string }
+  | { kind: "error"; currentUpdatedAt?: string };
+
+type NoteRow = {
+  id: string;
+  feature_id: string;
+  title: string;
+  updated_at: string;
+};
+
 function toOwnFeatureNote(
-  row: {
-    id: string;
-    feature_id: string;
-    title: string;
-    updated_at: string;
-  },
+  row: NoteRow,
   blocks: NoteBlock[],
   attachments: NoteAttachment[],
 ): OwnFeatureNote {
@@ -50,24 +58,38 @@ function toOwnFeatureNote(
   };
 }
 
+async function readCurrentUpdatedAt(
+  supabase: SupabaseClient,
+  input: { featureId: string; noteId: string },
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("feature_notes")
+    .select("updated_at")
+    .eq("id", input.noteId)
+    .eq("feature_id", input.featureId)
+    .maybeSingle();
+
+  return typeof data?.updated_at === "string" ? data.updated_at : null;
+}
+
 /**
  * Persiste une note : DB d’abord, puis upload images, puis MAJ attachments.
- * Update : WHERE updated_at = expectedUpdatedAt (conflit → null).
- * GC storage : droppés + orphelins dossier note (best-effort).
+ * Chaque UPDATE porte `.eq("updated_at", stamp)` (y compris rollback).
+ * Échec après mutation → renvoie `currentUpdatedAt` pour rafraîchir le token hook.
  */
 export async function saveOwnFeatureNote(
   input: SaveOwnFeatureNoteInput,
-): Promise<OwnFeatureNote | null> {
+): Promise<SaveOwnFeatureNoteResult> {
   const parsed = noteDocumentSchema.safeParse(input.blocks);
   if (!parsed.success) {
-    return null;
+    return { kind: "error" };
   }
 
   const retainedResult = noteAttachmentsSchema.safeParse(
     input.retainedAttachments,
   );
   if (!retainedResult.success) {
-    return null;
+    return { kind: "error" };
   }
 
   const title = deriveNoteTitle(parsed.data);
@@ -87,7 +109,7 @@ export async function saveOwnFeatureNote(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return null;
+    return { kind: "error" };
   }
 
   let noteId = input.noteId ?? null;
@@ -103,7 +125,7 @@ export async function saveOwnFeatureNote(
       typeof input.expectedUpdatedAt !== "string" ||
       input.expectedUpdatedAt.length === 0
     ) {
-      return null;
+      return { kind: "error" };
     }
 
     const { data: existing } = await supabase
@@ -114,7 +136,7 @@ export async function saveOwnFeatureNote(
       .maybeSingle();
 
     if (!existing) {
-      return null;
+      return { kind: "error" };
     }
 
     previousAttachments = parseNoteAttachments(existing.attachments);
@@ -125,12 +147,13 @@ export async function saveOwnFeatureNote(
     };
   }
 
-  let row: {
-    id: string;
-    feature_id: string;
-    title: string;
-    updated_at: string;
-  } | null = null;
+  let row: NoteRow | null = null;
+  /** Stamp optimiste courant (avance après chaque UPDATE réussi). */
+  let optimismStamp: string | null =
+    typeof input.expectedUpdatedAt === "string" &&
+    input.expectedUpdatedAt.length > 0
+      ? input.expectedUpdatedAt
+      : null;
 
   if (noteId) {
     const { data, error } = await supabase
@@ -142,14 +165,22 @@ export async function saveOwnFeatureNote(
       })
       .eq("id", noteId)
       .eq("feature_id", input.featureId)
-      .eq("updated_at", input.expectedUpdatedAt as string)
+      .eq("updated_at", optimismStamp as string)
       .select("id, feature_id, title, updated_at")
       .maybeSingle();
 
     if (error || !data) {
-      return null;
+      const current = await readCurrentUpdatedAt(supabase, {
+        featureId: input.featureId,
+        noteId,
+      });
+      if (current) {
+        return { kind: "conflict", currentUpdatedAt: current };
+      }
+      return { kind: "error" };
     }
     row = data;
+    optimismStamp = data.updated_at;
   } else {
     const { data, error } = await supabase
       .from("feature_notes")
@@ -163,24 +194,25 @@ export async function saveOwnFeatureNote(
       .maybeSingle();
 
     if (error || !data) {
-      return null;
+      return { kind: "error" };
     }
     noteId = data.id;
     row = data;
+    optimismStamp = data.updated_at;
   }
 
-  if (!noteId || !row) {
-    return null;
+  if (!noteId || !row || !optimismStamp) {
+    return { kind: "error" };
   }
 
   const uploaded: NoteAttachment[] = [];
   const isCreate = !input.noteId;
 
-  const rollbackUpdate = async () => {
+  const rollbackUpdate = async (stamp: string): Promise<string | null> => {
     if (!previousSnapshot || !noteId) {
-      return;
+      return stamp;
     }
-    await supabase
+    const { data } = await supabase
       .from("feature_notes")
       .update({
         title: previousSnapshot.title,
@@ -188,7 +220,33 @@ export async function saveOwnFeatureNote(
         attachments: previousSnapshot.attachments,
       })
       .eq("id", noteId)
-      .eq("feature_id", input.featureId);
+      .eq("feature_id", input.featureId)
+      .eq("updated_at", stamp)
+      .select("updated_at")
+      .maybeSingle();
+
+    if (typeof data?.updated_at === "string") {
+      return data.updated_at;
+    }
+    return readCurrentUpdatedAt(supabase, {
+      featureId: input.featureId,
+      noteId,
+    });
+  };
+
+  const failAfterTouch = async (
+    stamp: string,
+  ): Promise<SaveOwnFeatureNoteResult> => {
+    if (isCreate) {
+      await supabase
+        .from("feature_notes")
+        .delete()
+        .eq("id", noteId)
+        .eq("feature_id", input.featureId);
+      return { kind: "error" };
+    }
+    const currentUpdatedAt = (await rollbackUpdate(stamp)) ?? stamp;
+    return { kind: "error", currentUpdatedAt };
   };
 
   for (const item of input.newFiles) {
@@ -203,16 +261,7 @@ export async function saveOwnFeatureNote(
       await removeOwnFeatureNoteAttachmentFiles(
         uploaded.map((file) => file.path),
       );
-      if (isCreate) {
-        await supabase
-          .from("feature_notes")
-          .delete()
-          .eq("id", noteId)
-          .eq("feature_id", input.featureId);
-      } else {
-        await rollbackUpdate();
-      }
-      return null;
+      return failAfterTouch(optimismStamp);
     }
     uploaded.push(toStoredAttachment(attachment));
   }
@@ -225,6 +274,7 @@ export async function saveOwnFeatureNote(
       .update({ attachments })
       .eq("id", noteId)
       .eq("feature_id", input.featureId)
+      .eq("updated_at", optimismStamp)
       .select("id, feature_id, title, updated_at")
       .maybeSingle();
 
@@ -232,18 +282,34 @@ export async function saveOwnFeatureNote(
       await removeOwnFeatureNoteAttachmentFiles(
         uploaded.map((file) => file.path),
       );
+      const current = await readCurrentUpdatedAt(supabase, {
+        featureId: input.featureId,
+        noteId,
+      });
       if (isCreate) {
         await supabase
           .from("feature_notes")
           .delete()
           .eq("id", noteId)
           .eq("feature_id", input.featureId);
-      } else {
-        await rollbackUpdate();
+        return { kind: "error" };
       }
-      return null;
+      // 2ᵉ UPDATE raté : la ligne porte déjà le stamp post-1er UPDATE.
+      // Rollback avec ce stamp ; sinon renvoyer le stamp courant (pas le token périmé T0).
+      if (current === optimismStamp) {
+        const afterRollback = await rollbackUpdate(optimismStamp);
+        return {
+          kind: "error",
+          currentUpdatedAt: afterRollback ?? optimismStamp,
+        };
+      }
+      return {
+        kind: "conflict",
+        currentUpdatedAt: current ?? optimismStamp,
+      };
     }
     row = data;
+    optimismStamp = data.updated_at;
   }
 
   const keptPaths = attachments.map((item) => item.path);
@@ -260,5 +326,5 @@ export async function saveOwnFeatureNote(
   });
 
   const signed = await signOwnFeatureNoteAttachmentUrls(attachments);
-  return toOwnFeatureNote(row, parsed.data, signed);
+  return { kind: "ok", note: toOwnFeatureNote(row, parsed.data, signed) };
 }

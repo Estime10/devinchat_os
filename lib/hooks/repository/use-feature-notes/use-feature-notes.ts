@@ -364,7 +364,13 @@ export function useFeatureNotes(featureId: string | null): {
       });
 
       if (!result.ok) {
-        if (result.reason === "persist") {
+        if (result.currentUpdatedAt) {
+          setExpectedUpdatedAt(result.currentUpdatedAt);
+          expectedUpdatedAtRef.current = result.currentUpdatedAt;
+        }
+        if (result.reason === "conflict") {
+          setError("Note was updated elsewhere. Try again.");
+        } else if (result.reason === "persist") {
           setError("Could not save note.");
         }
         return;

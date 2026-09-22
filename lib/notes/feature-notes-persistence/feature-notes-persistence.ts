@@ -1,6 +1,7 @@
 import {
   areEditorAttachmentsEqual,
   isPersistedEditorAttachment,
+  toEditorNoteAttachment,
   type EditorNoteAttachment,
 } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
 import {
@@ -20,7 +21,6 @@ import {
   collectPendingAttachmentFiles,
   rememberFeatureEditorNote,
 } from "@/lib/notes/feature-note-draft-store/feature-note-draft-store";
-import { toEditorNoteAttachment } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
 import {
   cloneBlocks,
   cloneEditorAttachments,
@@ -39,7 +39,11 @@ export async function persistFeatureNote(input: {
   baselineAttachments: EditorNoteAttachment[];
 }): Promise<
   | { ok: true; saved: OwnFeatureNote }
-  | { ok: false; reason: "empty" | "clean" | "persist" }
+  | {
+      ok: false;
+      reason: "empty" | "clean" | "persist" | "conflict";
+      currentUpdatedAt?: string;
+    }
 > {
   const hasText = hasNoteDocumentContent(input.blocks);
   const hasFiles = input.attachments.length > 0;
@@ -69,7 +73,7 @@ export async function persistFeatureNote(input: {
     }
   }
 
-  const saved = await saveOwnFeatureNoteAction({
+  const result = await saveOwnFeatureNoteAction({
     featureId: input.featureId,
     noteId: input.noteId,
     expectedUpdatedAt: input.noteId ? input.expectedUpdatedAt : null,
@@ -78,9 +82,23 @@ export async function persistFeatureNote(input: {
     formData,
   });
 
-  if (!saved) {
-    return { ok: false, reason: "persist" };
+  if (result.kind === "conflict") {
+    return {
+      ok: false,
+      reason: "conflict",
+      currentUpdatedAt: result.currentUpdatedAt,
+    };
   }
+
+  if (result.kind === "error") {
+    return {
+      ok: false,
+      reason: "persist",
+      currentUpdatedAt: result.currentUpdatedAt,
+    };
+  }
+
+  const saved = result.note;
 
   revokeEditorAttachmentUrls(
     input.attachments.filter((item) => !isPersistedEditorAttachment(item)),
