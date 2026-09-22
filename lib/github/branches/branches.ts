@@ -6,6 +6,8 @@ export type GithubBranch = {
   protected: boolean;
   /** ISO tip commit (author/committer date). */
   lastPushedAt: string | null;
+  /** Tip commit SHA (full). */
+  tipCommitSha: string | null;
 };
 
 type GithubBranchApiItem = {
@@ -30,10 +32,16 @@ function mapGithubBranch(item: GithubBranchApiItem): GithubBranch | null {
     return null;
   }
 
+  const tipCommitSha =
+    typeof item.commit?.sha === "string" && item.commit.sha.length >= 7
+      ? item.commit.sha
+      : null;
+
   return {
     name: item.name,
     protected: item.protected === true,
     lastPushedAt: null,
+    tipCommitSha,
   };
 }
 

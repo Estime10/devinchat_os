@@ -20,8 +20,9 @@ import {
 
 export type FeatureBranchSyncItem = {
   branchName: string;
-  status: "in_progress" | "done";
+  status: "committed" | "merged";
   lastPushedAt: string | null;
+  tipCommitSha: string | null;
   parentBranchName: string | null;
 };
 
@@ -99,6 +100,7 @@ export async function buildFeatureBranchSyncPlan(input: {
       branchName: branch.name,
       status,
       lastPushedAt: branch.lastPushedAt,
+      tipCommitSha: branch.tipCommitSha,
       parentBranchName: parents.get(branch.name) ?? null,
     });
   }
@@ -119,6 +121,7 @@ export async function applyFeatureBranchSyncPlan(input: {
       branchName: item.branchName,
       status: item.status,
       lastPushedAt: item.lastPushedAt,
+      tipCommitSha: item.tipCommitSha,
       parentBranchName: item.parentBranchName,
     });
     if (!ok) {

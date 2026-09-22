@@ -58,7 +58,7 @@ describe("pickProductionBranch", () => {
 });
 
 describe("resolveBranchFeatureStatus", () => {
-  it("develop reste toujours in_progress", () => {
+  it("develop reste toujours committed", () => {
     expect(
       resolveBranchFeatureStatus({
         branchName: "develop",
@@ -66,10 +66,10 @@ describe("resolveBranchFeatureStatus", () => {
         mergedIntoProduction: true,
         developMergedIntoProduction: true,
       }),
-    ).toBe("in_progress");
+    ).toBe("committed");
   });
 
-  it("main/master done seulement si develop y est mergé", () => {
+  it("main/master merged seulement si develop y est mergé", () => {
     expect(
       resolveBranchFeatureStatus({
         branchName: "main",
@@ -77,7 +77,7 @@ describe("resolveBranchFeatureStatus", () => {
         mergedIntoProduction: null,
         developMergedIntoProduction: true,
       }),
-    ).toBe("done");
+    ).toBe("merged");
     expect(
       resolveBranchFeatureStatus({
         branchName: "master",
@@ -85,10 +85,10 @@ describe("resolveBranchFeatureStatus", () => {
         mergedIntoProduction: null,
         developMergedIntoProduction: false,
       }),
-    ).toBe("in_progress");
+    ).toBe("committed");
   });
 
-  it("autres branches done si mergées dans develop ou main", () => {
+  it("autres branches merged si mergées dans develop ou main", () => {
     expect(
       resolveBranchFeatureStatus({
         branchName: "feature/auth",
@@ -96,7 +96,7 @@ describe("resolveBranchFeatureStatus", () => {
         mergedIntoProduction: false,
         developMergedIntoProduction: false,
       }),
-    ).toBe("done");
+    ).toBe("merged");
     expect(
       resolveBranchFeatureStatus({
         branchName: "hotfix/x",
@@ -104,7 +104,7 @@ describe("resolveBranchFeatureStatus", () => {
         mergedIntoProduction: true,
         developMergedIntoProduction: false,
       }),
-    ).toBe("done");
+    ).toBe("merged");
     expect(
       resolveBranchFeatureStatus({
         branchName: "feature/auth",
@@ -112,6 +112,6 @@ describe("resolveBranchFeatureStatus", () => {
         mergedIntoProduction: false,
         developMergedIntoProduction: true,
       }),
-    ).toBe("in_progress");
+    ).toBe("committed");
   });
 });

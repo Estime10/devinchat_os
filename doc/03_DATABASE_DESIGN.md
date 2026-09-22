@@ -53,12 +53,12 @@ Il répond à :
 | D8 | **Parenté V1 live** = `parent_branch_name` (nom de branche Git parent). `parent_feature_id` existe en SQL mais **n’est pas écrit** par le sync — hors usage V1. |
 | D9 | **Pas d’`activity_events` en V1 live.** Sync on-demand → upsert features directement. |
 | D10 | Idempotence sync : upsert par `(project_id, branch_name)`. |
-| D11 | Branche GitHub **supprimée** → si `done` : `branch_name = NULL` (status conservé) ; sinon → `archived`. |
+| D11 | Branche GitHub **supprimée** → si `merged` (legacy `done`) : `branch_name = NULL` (status conservé) ; sinon → `archived`. |
 | D12 | Repo déconnecté → lien projet nullifié ; pas de cascade destructive sur les features. |
 | D13 | RLS obligatoire sur toutes les tables user-data. |
 | D14 | Tokens GitHub chiffrés server-side ; SELECT + INSERT/UPDATE colonnes credentials **fermés** ; lecture/écriture via RPC DEFINER. |
 | D15 | Tables applicatives V1 live : **6** (`profiles`, `github_connections`, `github_repositories`, `projects`, `features`, `feature_notes`) + bucket `feature-note-attachments`. |
-| D16 | Sync = **toutes** les branches GitHub du repo (pas seulement `feature/*`). Statuts runtime : `in_progress` \| `done` \| `archived`. |
+| D16 | Sync = **toutes** les branches GitHub du repo (pas seulement `feature/*`). Statuts runtime : `committed` \| `merged` \| `archived`. |
 | D17 | Notes : N par feature ; images WebP ; bucket **privé** ; URLs **signées** (TTL 1h) ; GC storage au save serveur. |
 
 ---
@@ -92,9 +92,9 @@ OAuth token (RPC credentials) + ensure project 1:1 repo
         ↓
 fetch branches + merge matrix trunks O(N) + parents PR
         ↓
-upsert features (status in_progress|done, parent_branch_name, last_pushed_at)
+upsert features (status committed|merged, parent_branch_name, last_pushed_at)
         ↓
-archive stale (done sans branche / archived)
+archive stale (merged sans branche / archived)
         ↓
 UI arbre + notes persistées
 ```
@@ -136,7 +136,7 @@ CREATE TYPE feature_status AS ENUM (
   'done',
   'archived'
 );
--- Runtime V1 n’écrit que : in_progress | done | archived
+-- Runtime V1 n’écrit que : committed | merged | archived
 -- Les autres valeurs = legacy SQL (vision machine d’états) — non utilisées par le sync.
 
 CREATE TYPE github_connection_status AS ENUM (
@@ -311,9 +311,9 @@ CREATE INDEX idx_github_repositories_full_name
 | `parent_feature_id` | `uuid` | NULL, FK → `features(id)` | **Hors usage V1** — non écrit par le sync |
 | `name` | `text` | NOT NULL | Dérivé du nom de branche |
 | `description` | `text` | NULL | |
-| `branch_name` | `text` | NULL | NULL si branche GitHub absente (done conservé) |
+| `branch_name` | `text` | NULL | NULL si branche GitHub absente (merged conservé) |
 | `parent_branch_name` | `text` | NULL | Parenté Git pour l’arbre UI |
-| `status` | `feature_status` | NOT NULL | Runtime V1 : `in_progress` \| `done` \| `archived` |
+| `status` | `feature_status` | NOT NULL | Runtime V1 : `committed` \| `merged` \| `archived` |
 | `last_pushed_at` | `timestamptz` | NULL | Tip commit / push GitHub |
 | `manual_override` | `boolean` | NOT NULL, DEFAULT `false` | Réservé — non utilisé V1 |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT `now()` | |
@@ -346,7 +346,7 @@ Toute branche GitHub du repo
 name              = nom de branche (affichage)
 branch_name       = nom exact GitHub
 parent_branch_name = parenté (merge matrix trunks + PRs mergées)
-status            = in_progress | done  (trunks / merges develop|main)
+status            = committed | merged  (trunks / merges develop|main)
 last_pushed_at    = tip commit
 ```
 
@@ -462,13 +462,13 @@ Sync on-demand : branche absente de la liste GitHub
         ↓
 archiveStaleOwnFeatures
         ↓
-SI status = done  → branch_name = NULL (status done conservé)
+SI status = merged (legacy done)  → branch_name = NULL (status conservé)
 SINON             → status = archived
         ↓
 Feature RESTE en base (pas de hard delete)
 ```
 
-**Pourquoi :** après un merge, GitHub delete souvent la branche. Hard-delete ferait disparaître l’historique `done` — contraire au produit.
+**Pourquoi :** après un merge, GitHub delete souvent la branche. Hard-delete ferait disparaître l’historique `merged` — contraire au produit.
 
 ### 7.2 Feature hard-delete (utilisateur)
 
@@ -765,7 +765,7 @@ Les DTOs API **ne doivent pas** exposer `credentials_ciphertext`.
 | Parenté arbre ? | `parent_branch_name` (pas `parent_feature_id`). |
 | Events / timeline ? | Hors V1 — pas de table `activity_events`. |
 | Doublons sync ? | UNIQUE `(project_id, branch_name)`. |
-| Branche supprimée ? | `done` → `branch_name` NULL ; sinon `archived`. |
+| Branche supprimée ? | `merged` → `branch_name` NULL ; sinon `archived`. |
 | Notes ? | `feature_notes` + bucket privé + URLs signées. |
 | RLS partout ? | Oui sur les 6 tables user-data. |
 | Credentials ? | Chiffrés ; RPC read/write ; colonnes non SELECT/INSERT/UPDATE JWT. |
@@ -789,8 +789,8 @@ Les DTOs API **ne doivent pas** exposer `credentials_ciphertext`.
 Le modèle V1 est valide si :
 
 1. Un user authentifié ne peut lire/écrire que ses données (RLS).
-2. Une feature `done` peut exister **sans** branche (`branch_name` NULL).
-3. La suppression d’une branche GitHub ne fait **pas** disparaître une feature `done`.
+2. Une feature `merged` peut exister **sans** branche (`branch_name` NULL).
+3. La suppression d’une branche GitHub ne fait **pas** disparaître une feature `merged`.
 4. Aucun token GitHub n’est stocké en clair ni exposé via SELECT / INSERT / UPDATE JWT sur les colonnes credentials.
 5. Les attachments notes ne sont pas listables publiquement (bucket privé + signed URLs).
 6. Le schéma live tient en **6 tables** + 1 bucket — pas plus sans justification.

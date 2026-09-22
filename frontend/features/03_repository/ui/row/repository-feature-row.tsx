@@ -1,9 +1,12 @@
 "use client";
 
+import { formatFeatureStatusLabel } from "@/backend/features/04_features/domain/format-feature-status-label/format-feature-status-label";
+
 type RepositoryFeatureRowProps = {
   name: string;
   branchName: string;
   status: string;
+  tipCommitSha?: string | null;
   mergedInto: string | null;
   noteCount?: number;
   selected?: boolean;
@@ -19,6 +22,7 @@ export function RepositoryFeatureRow({
   name,
   branchName,
   status,
+  tipCommitSha = null,
   mergedInto,
   noteCount = 0,
   selected = false,
@@ -29,6 +33,7 @@ export function RepositoryFeatureRow({
     : "feature-card";
 
   const showNotesBadge = noteCount > 0;
+  const statusLabel = formatFeatureStatusLabel({ status, tipCommitSha });
 
   const body = (
     <>
@@ -48,7 +53,7 @@ export function RepositoryFeatureRow({
         {branchName.length > 0 ? branchName : "branch deleted"}
       </p>
       <p className="mt-1 font-sans text-[10px] tracking-wide text-fg-default uppercase">
-        {status.replaceAll("_", " ")}
+        {statusLabel}
       </p>
       {mergedInto ? (
         <p className="mt-1 truncate font-sans text-[10px] tracking-wide text-fg-muted normal-case">

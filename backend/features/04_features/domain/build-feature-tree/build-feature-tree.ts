@@ -2,6 +2,7 @@ import type { OwnFeature } from "@/backend/features/04_features/types/own-featur
 import { compareByPushRecency } from "@/backend/features/04_features/domain/branch-display-order/branch-display-order";
 import {
   isIntegrationBranch,
+  isMergedFeatureStatus,
   isProductionBranch,
 } from "@/backend/features/04_features/domain/resolve-branch-feature-status/resolve-branch-feature-status";
 
@@ -104,7 +105,7 @@ export function buildFeatureTree(features: OwnFeature[]): FeatureTree {
       continue;
     }
 
-    if (!branchName && feature.status !== "done") {
+    if (!branchName && !isMergedFeatureStatus(feature.status)) {
       continue;
     }
 

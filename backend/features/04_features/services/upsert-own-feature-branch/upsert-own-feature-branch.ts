@@ -7,8 +7,9 @@ import { createClient } from "@/lib/supabase/server/server";
 export async function upsertOwnFeatureBranch(input: {
   projectId: string;
   branchName: string;
-  status: "in_progress" | "done";
+  status: "committed" | "merged";
   lastPushedAt: string | null;
+  tipCommitSha: string | null;
   parentBranchName: string | null;
 }): Promise<boolean> {
   const supabase = await createClient();
@@ -17,6 +18,7 @@ export async function upsertOwnFeatureBranch(input: {
     name,
     status: input.status,
     last_pushed_at: input.lastPushedAt,
+    tip_commit_sha: input.tipCommitSha,
     parent_branch_name: input.parentBranchName,
   };
 
@@ -40,6 +42,7 @@ export async function upsertOwnFeatureBranch(input: {
       .from("features")
       .update({
         last_pushed_at: input.lastPushedAt,
+        tip_commit_sha: input.tipCommitSha,
         parent_branch_name: input.parentBranchName,
       })
       .eq("id", existing.id);
@@ -52,6 +55,7 @@ export async function upsertOwnFeatureBranch(input: {
     branch_name: input.branchName,
     status: input.status,
     last_pushed_at: input.lastPushedAt,
+    tip_commit_sha: input.tipCommitSha,
     parent_branch_name: input.parentBranchName,
   });
 

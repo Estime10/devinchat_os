@@ -5,4 +5,5 @@ export type OwnFeature = {
   parentBranchName: string | null;
   status: string;
   lastPushedAt: string | null;
+  tipCommitSha: string | null;
 };

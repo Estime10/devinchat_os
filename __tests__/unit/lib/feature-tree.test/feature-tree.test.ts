@@ -10,6 +10,7 @@ function feature(
   return {
     parentBranchName: null,
     lastPushedAt: null,
+    tipCommitSha: null,
     ...partial,
   };
 }
@@ -132,21 +133,21 @@ describe("buildFeatureTree", () => {
         id: "1",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "2",
         name: "Develop",
         branchName: "develop",
         parentBranchName: "main",
-        status: "in_progress",
+        status: "committed",
       }),
       feature({
         id: "3",
         name: "Done A",
         branchName: "feature/a",
         parentBranchName: "develop",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-02T00:00:00Z",
       }),
       feature({
@@ -154,7 +155,7 @@ describe("buildFeatureTree", () => {
         name: "WIP B",
         branchName: "feature/b",
         parentBranchName: null,
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-03T00:00:00Z",
       }),
       feature({
@@ -162,7 +163,7 @@ describe("buildFeatureTree", () => {
         name: "Done C",
         branchName: "feature/c",
         parentBranchName: "develop",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-04T00:00:00Z",
       }),
     ]);
@@ -183,20 +184,20 @@ describe("buildFeatureTree", () => {
         id: "1",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "2",
         name: "Develop",
         branchName: "develop",
-        status: "in_progress",
+        status: "committed",
       }),
       feature({
         id: "parent",
         name: "Parent WIP",
         branchName: "feature/parent",
         parentBranchName: null,
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-02T00:00:00Z",
       }),
       feature({
@@ -204,7 +205,7 @@ describe("buildFeatureTree", () => {
         name: "Child WIP",
         branchName: "feature/child",
         parentBranchName: "feature/parent",
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-03T00:00:00Z",
       }),
       feature({
@@ -212,7 +213,7 @@ describe("buildFeatureTree", () => {
         name: "Solo WIP",
         branchName: "feature/solo",
         parentBranchName: null,
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-04T00:00:00Z",
       }),
     ]);
@@ -232,14 +233,14 @@ describe("buildFeatureTree", () => {
         id: "1",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "old",
         name: "Old",
         branchName: "feature/old",
         parentBranchName: null,
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-01T00:00:00Z",
       }),
       feature({
@@ -247,7 +248,7 @@ describe("buildFeatureTree", () => {
         name: "New",
         branchName: "feature/new",
         parentBranchName: null,
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-05T00:00:00Z",
       }),
       feature({
@@ -255,7 +256,7 @@ describe("buildFeatureTree", () => {
         name: "Mid",
         branchName: "feature/mid",
         parentBranchName: null,
-        status: "in_progress",
+        status: "committed",
         lastPushedAt: "2026-01-03T00:00:00Z",
       }),
     ]);
@@ -273,21 +274,21 @@ describe("buildFeatureTree", () => {
         id: "1",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "a",
         name: "A",
         branchName: "feature/a",
         parentBranchName: "feature/b",
-        status: "in_progress",
+        status: "committed",
       }),
       feature({
         id: "b",
         name: "B",
         branchName: "feature/b",
         parentBranchName: "feature/a",
-        status: "in_progress",
+        status: "committed",
       }),
     ]);
 
@@ -315,20 +316,20 @@ describe("buildFeatureTree", () => {
         id: "main",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "dev",
         name: "Develop",
         branchName: "develop",
-        status: "in_progress",
+        status: "committed",
       }),
       feature({
         id: "auth",
         name: "Auth",
         branchName: "feature/auth",
         parentBranchName: "develop",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-02T00:00:00Z",
       }),
       feature({
@@ -336,7 +337,7 @@ describe("buildFeatureTree", () => {
         name: "Auth UI",
         branchName: "feature/auth-ui",
         parentBranchName: "feature/auth",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-03T00:00:00Z",
       }),
     ]);
@@ -355,14 +356,14 @@ describe("buildFeatureTree", () => {
         id: "dev",
         name: "Develop",
         branchName: "develop",
-        status: "in_progress",
+        status: "committed",
       }),
       feature({
         id: "shipped",
         name: "Shipped Auth",
         branchName: null,
         parentBranchName: "develop",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-02T00:00:00Z",
       }),
     ]);
@@ -378,20 +379,20 @@ describe("buildFeatureTree", () => {
         id: "1",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "2",
         name: "Develop",
         branchName: "develop",
-        status: "in_progress",
+        status: "committed",
       }),
       feature({
         id: "3",
         name: "Hotfix",
         branchName: "hotfix/x",
         parentBranchName: "main",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-05T00:00:00Z",
       }),
     ]);
@@ -408,14 +409,14 @@ describe("buildFeatureTree", () => {
         id: "1",
         name: "Main",
         branchName: "main",
-        status: "done",
+        status: "merged",
       }),
       feature({
         id: "3",
         name: "Done A",
         branchName: "feature/a",
         parentBranchName: "develop",
-        status: "done",
+        status: "merged",
         lastPushedAt: "2026-01-02T00:00:00Z",
       }),
     ]);

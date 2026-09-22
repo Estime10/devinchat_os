@@ -29,6 +29,7 @@ export function FeatureTreeNodeView({
         name={feature.name}
         branchName={feature.branchName ?? ""}
         status={feature.status}
+        tipCommitSha={feature.tipCommitSha}
         mergedInto={feature.parentBranchName}
         noteCount={noteCount}
         selected={selectedFeatureId === feature.id}

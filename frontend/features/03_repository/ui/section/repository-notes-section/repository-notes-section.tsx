@@ -2,6 +2,7 @@
 
 import type { EditorNoteAttachment } from "@/backend/features/04_features/domain/note-attachment/note-attachment";
 import type { NoteBlock } from "@/backend/features/04_features/domain/note-block/note-block";
+import { formatFeatureStatusLabel } from "@/backend/features/04_features/domain/format-feature-status-label/format-feature-status-label";
 import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note/own-feature-note";
 import type { OwnFeature } from "@/backend/features/04_features/types/own-feature/own-feature";
 import { StateError } from "@/frontend/components/states/error/state-error";
@@ -94,7 +95,10 @@ export function RepositoryNotesSection({
           {branchLabel}
         </p>
         <p className="font-sans text-xs tracking-wide text-fg-default uppercase">
-          {feature.status.replaceAll("_", " ")}
+          {formatFeatureStatusLabel({
+            status: feature.status,
+            tipCommitSha: feature.tipCommitSha,
+          })}
         </p>
         <RepositoryNoteChips
           notes={notes}

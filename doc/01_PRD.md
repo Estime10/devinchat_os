@@ -55,7 +55,7 @@ Le TDD (~2000 lignes) reste une **carte d’exploration**, pas une checklist d�
 2. Pas d’analyse de code / clone.
 3. Server-first ; pas de credentials dans le bundle client.
 4. API GitHub : GET only côté app. Scope `repo` = contrainte OAuth App classique pour lire le privé (pas de scope lecture-seule équivalent).
-5. Branche GitHub effacée : `done` reste `done` (sans branche) ; le reste → `archived`.
+5. Branche GitHub effacée : `merged` reste `merged` (sans branche) ; le reste → `archived`.
 6. Attachments notes : bucket **privé**, lecture via URLs signées owner-scoped ; GC storage des images droppées au save serveur.
 
 ---
@@ -361,7 +361,7 @@ Règles :
 2. Connexion GitHub OAuth App (`read:user` + `repo`) — GET only
 3. Homescreen : liste repos + activité commits
 4. Page repository : sync on-demand → **arbre** de branches (`parent_branch_name`) + tiers trunks / open / done
-5. Statuts runtime : `in_progress` \| `done` \| `archived` (pas de % progress)
+5. Statuts runtime : `committed` \| `merged` \| `archived` (pas de % progress)
 6. **Notes persistées** par feature (texte + images WebP, bucket privé, URLs signées)
 7. Credentials GitHub chiffrés ; lecture/écriture via RPC uniquement
 
