@@ -25,7 +25,8 @@ export type EditorNoteAttachment = {
 export const noteAttachmentSchema = z.object({
   id: z.string().min(1),
   path: z.string().min(1),
-  url: z.string().url(),
+  /** Vide en DB ; URL signée régénérée à la lecture (TTL). */
+  url: z.string(),
   name: z.string().min(1),
   mimeType: z.string().min(1),
   size: z.number().int().nonnegative(),
@@ -39,6 +40,8 @@ export const noteAttachmentsSchema = z.array(noteAttachmentSchema);
 
 export const NOTE_ATTACHMENT_BUCKET = "feature-note-attachments";
 export const NOTE_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+/** TTL des URLs signées (lecture bucket privé). */
+export const NOTE_ATTACHMENT_SIGNED_URL_TTL_SECONDS = 60 * 60;
 /** Formats acceptés au file picker (convertis en WebP avant upload). */
 export const NOTE_ATTACHMENT_INPUT_MIME_TYPES = [
   "image/jpeg",
@@ -95,7 +98,6 @@ export function areEditorAttachmentsEqual(
       !!other &&
       item.id === other.id &&
       item.path === other.path &&
-      item.url === other.url &&
       item.label === other.label
     );
   });

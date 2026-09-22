@@ -19,7 +19,6 @@ import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-fe
 import {
   deleteOwnFeatureNoteAction,
   listOwnFeatureNotesAction,
-  removeOwnFeatureNoteAttachmentAction,
   saveOwnFeatureNoteAction,
 } from "@/backend/features/04_features/mutations/feature-notes";
 import {
@@ -413,10 +412,6 @@ export function useFeatureNotes(featureId: string | null): {
         }
       }
 
-      const removedFromBaseline = baselineAttachmentsRef.current
-        .filter(isPersistedEditorAttachment)
-        .filter((item) => !current.some((entry) => entry.id === item.id));
-
       const saved = await saveOwnFeatureNoteAction({
         featureId: id,
         noteId: previousNoteId,
@@ -427,14 +422,6 @@ export function useFeatureNotes(featureId: string | null): {
       if (!saved) {
         setError("Could not save note.");
         return;
-      }
-
-      if (removedFromBaseline.length > 0) {
-        await Promise.all(
-          removedFromBaseline.map((item) =>
-            removeOwnFeatureNoteAttachmentAction({ path: item.path }),
-          ),
-        );
       }
 
       revokeEditorAttachmentUrls(

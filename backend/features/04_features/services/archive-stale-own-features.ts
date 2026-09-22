@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Branche disparue sur GitHub :
- * - done → conserve le status (historique pyramide), branch_name = null
+ * - done → conserve le status (historique arbre), branch_name = null
  * - sinon → archived
  */
 export async function archiveStaleOwnFeatures(input: {

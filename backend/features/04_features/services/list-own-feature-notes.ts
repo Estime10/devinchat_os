@@ -1,10 +1,15 @@
-import { parseNoteAttachments } from "@/backend/features/04_features/domain/note-attachment";
+import {
+  parseNoteAttachments,
+  type NoteAttachment,
+} from "@/backend/features/04_features/domain/note-attachment";
 import { parseNoteDocument } from "@/backend/features/04_features/domain/note-document";
 import type { OwnFeatureNote } from "@/backend/features/04_features/types/own-feature-note";
+import { signOwnFeatureNoteAttachmentUrls } from "@/backend/features/04_features/services/upload-own-feature-note-attachment";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * Liste les notes d’une feature (owner only via RLS).
+ * URLs attachments = signées (bucket privé).
  */
 export async function listOwnFeatureNotes(
   featureId: string,
@@ -27,12 +32,14 @@ export async function listOwnFeatureNotes(
     if (!blocks) {
       continue;
     }
+    const stored: NoteAttachment[] = parseNoteAttachments(row.attachments);
+    const attachments = await signOwnFeatureNoteAttachmentUrls(stored);
     notes.push({
       id: row.id,
       featureId: row.feature_id,
       title: row.title,
       blocks,
-      attachments: parseNoteAttachments(row.attachments),
+      attachments,
       updatedAt: row.updated_at,
     });
   }

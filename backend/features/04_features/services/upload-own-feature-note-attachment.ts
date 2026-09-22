@@ -2,6 +2,7 @@ import {
   createNoteAttachmentId,
   NOTE_ATTACHMENT_BUCKET,
   NOTE_ATTACHMENT_MAX_BYTES,
+  NOTE_ATTACHMENT_SIGNED_URL_TTL_SECONDS,
   NOTE_ATTACHMENT_STORED_MIME,
   type NoteAttachment,
 } from "@/backend/features/04_features/domain/note-attachment";
@@ -11,6 +12,40 @@ function sanitizeFileName(name: string): string {
   const withoutExt = name.replace(/\.[^.]+$/, "");
   const base = withoutExt.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80);
   return base.length > 0 ? base : "image";
+}
+
+function toStoredAttachment(attachment: NoteAttachment): NoteAttachment {
+  return {
+    ...attachment,
+    url: "",
+  };
+}
+
+/**
+ * Régénère des URLs signées (bucket privé) — ne jamais exposer getPublicUrl.
+ */
+export async function signOwnFeatureNoteAttachmentUrls(
+  attachments: readonly NoteAttachment[],
+): Promise<NoteAttachment[]> {
+  if (attachments.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const signed: NoteAttachment[] = [];
+
+  for (const item of attachments) {
+    const { data, error } = await supabase.storage
+      .from(NOTE_ATTACHMENT_BUCKET)
+      .createSignedUrl(item.path, NOTE_ATTACHMENT_SIGNED_URL_TTL_SECONDS);
+
+    signed.push({
+      ...item,
+      url: error || !data?.signedUrl ? "" : data.signedUrl,
+    });
+  }
+
+  return signed;
 }
 
 /**
@@ -63,14 +98,10 @@ export async function uploadOwnFeatureNoteAttachment(input: {
     return null;
   }
 
-  const { data: publicUrl } = supabase.storage
-    .from(NOTE_ATTACHMENT_BUCKET)
-    .getPublicUrl(path);
-
   return {
     id: attachmentId,
     path,
-    url: publicUrl.publicUrl,
+    url: "",
     name: `${safeName}.webp`,
     mimeType: NOTE_ATTACHMENT_STORED_MIME,
     size: input.file.size,
@@ -90,3 +121,5 @@ export async function removeOwnFeatureNoteAttachmentFiles(
   const supabase = await createClient();
   await supabase.storage.from(NOTE_ATTACHMENT_BUCKET).remove([...paths]);
 }
+
+export { toStoredAttachment };

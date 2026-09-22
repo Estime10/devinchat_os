@@ -21,6 +21,6 @@ export function getGithubOAuthEnv() {
  * Scopes V1 — OAuth App classique.
  * `repo` est le minimum GitHub pour lire les repos *privés* (pas de scope
  * lecture-seule équivalent). Borne applicative : `githubApiGet` (GET only).
- * Vrai least-privilege → GitHub App (Contents: Read) — hors V1 pyramide.
+ * Vrai least-privilege → GitHub App (Contents: Read) — hors V1.
  */
 export const GITHUB_OAUTH_SCOPES = ["read:user", "repo"] as const;

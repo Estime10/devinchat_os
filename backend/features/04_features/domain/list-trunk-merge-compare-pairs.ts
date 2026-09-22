@@ -10,7 +10,7 @@ export type TrunkMergeComparePair = {
 };
 
 /**
- * Paires compare nécessaires à la pyramide : uniquement base ∈ {develop, main|master}.
+ * Paires compare nécessaires à l’arbre : uniquement base ∈ {develop, main|master}.
  * O(N) — pas N² entre toutes les branches.
  */
 export function listTrunkMergeComparePairs(
