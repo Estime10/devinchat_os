@@ -11,12 +11,16 @@ export async function proxy(request: NextRequest) {
   if (isProtectedPath(pathname) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.auth;
+    url.searchParams.set("mode", "login");
     return NextResponse.redirect(url);
   }
 
-  if (isAuthPage && user) {
+  // Session active : auth → homescreen.
+  // Splash reste accessible (boot puis redirect client home | auth).
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.home;
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
@@ -30,6 +34,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/auth",
     "/home",
     "/home/:path*",
     "/repository",

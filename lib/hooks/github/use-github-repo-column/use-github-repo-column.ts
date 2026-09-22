@@ -21,6 +21,9 @@ import { useEffect, useRef, useState } from "react";
 
 /** Min delay between focus-triggered sparkline refreshes. */
 const FOCUS_REFRESH_COOLDOWN_MS = 60_000;
+/** Retry quand GitHub renvoie encore null (stats 202). */
+const NULL_ACTIVITY_RETRY_MS = 2_500;
+const NULL_ACTIVITY_MAX_RETRIES = 2;
 
 export type GithubRepoColumnRow = {
   id: number;
@@ -46,8 +49,13 @@ export function useGithubRepoColumn(
   const listRef = useRef<HTMLUListElement>(null);
   const isFirstRender = useRef(true);
   const loadedKeysRef = useRef<Set<string>>(
-    new Set(Object.keys(initialActivity)),
+    new Set(
+      Object.entries(initialActivity)
+        .filter(([, weeks]) => Array.isArray(weeks))
+        .map(([name]) => name),
+    ),
   );
+  const nullRetryCountRef = useRef<Map<string, number>>(new Map());
   const lastFocusRefreshAtRef = useRef(0);
 
   const activity: GithubCommitActivityMap = {
@@ -72,10 +80,10 @@ export function useGithubRepoColumn(
         return;
       }
       lastFocusRefreshAtRef.current = now;
-      // Force reload of the visible page only.
       for (const name of pageKey.split("\0")) {
         if (name.length > 0) {
           loadedKeysRef.current.delete(name);
+          nullRetryCountRef.current.delete(name);
         }
       }
       setRefreshToken((current) => current + 1);
@@ -115,28 +123,15 @@ export function useGithubRepoColumn(
     }
 
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     void (async () => {
-      const markLoaded = (map: GithubCommitActivityMap) => {
-        for (const name of targets) {
-          loadedKeysRef.current.add(name);
-        }
-        setFetchedActivity((current) => {
-          const next = { ...current, ...map };
-          for (const name of targets) {
-            if (!(name in next)) {
-              next[name] = null;
-            }
-          }
-          return next;
-        });
-      };
-
       try {
         const response = await fetch(API.github.commitActivity, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fullNames: targets }),
+          cache: "no-store",
         });
 
         if (cancelled) {
@@ -144,24 +139,84 @@ export function useGithubRepoColumn(
         }
 
         if (!response.ok) {
-          markLoaded({});
+          for (const name of targets) {
+            loadedKeysRef.current.add(name);
+          }
+          setFetchedActivity((current) => {
+            const next = { ...current };
+            for (const name of targets) {
+              if (!(name in next)) {
+                next[name] = null;
+              }
+            }
+            return next;
+          });
           return;
         }
 
         const payload = (await response.json()) as {
           activity?: GithubCommitActivityMap;
         };
+        const map = payload.activity ?? {};
+        const retryNames: string[] = [];
+        const patch: GithubCommitActivityMap = {};
 
-        markLoaded(payload.activity ?? {});
+        for (const name of targets) {
+          const weeks = map[name];
+          if (Array.isArray(weeks)) {
+            patch[name] = weeks;
+            loadedKeysRef.current.add(name);
+            nullRetryCountRef.current.delete(name);
+            continue;
+          }
+          patch[name] = null;
+          const retries = nullRetryCountRef.current.get(name) ?? 0;
+          if (retries < NULL_ACTIVITY_MAX_RETRIES) {
+            nullRetryCountRef.current.set(name, retries + 1);
+            retryNames.push(name);
+          } else {
+            loadedKeysRef.current.add(name);
+          }
+        }
+
+        setFetchedActivity((current) => ({ ...current, ...patch }));
+
+        if (retryNames.length > 0 && !cancelled) {
+          retryTimer = setTimeout(() => {
+            setFetchedActivity((current) => {
+              const next = { ...current };
+              for (const name of retryNames) {
+                delete next[name];
+                loadedKeysRef.current.delete(name);
+              }
+              return next;
+            });
+            setRefreshToken((current) => current + 1);
+          }, NULL_ACTIVITY_RETRY_MS);
+        }
       } catch {
         if (!cancelled) {
-          markLoaded({});
+          for (const name of targets) {
+            loadedKeysRef.current.add(name);
+          }
+          setFetchedActivity((current) => {
+            const next = { ...current };
+            for (const name of targets) {
+              if (!(name in next)) {
+                next[name] = null;
+              }
+            }
+            return next;
+          });
         }
       }
     })();
 
     return () => {
       cancelled = true;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
     };
   }, [pageKey, refreshToken]);
 
@@ -179,7 +234,8 @@ export function useGithubRepoColumn(
   };
 
   const rows: GithubRepoColumnRow[] = items.map((repo) => {
-    const hasActivity = repo.fullName in activity;
+    const weeks = activity[repo.fullName];
+    const hasActivityEntry = repo.fullName in activity;
     const parsed = parseGithubFullName(repo.fullName);
     const href = parsed
       ? ROUTES.repository(parsed.owner, parsed.repo)
@@ -195,8 +251,8 @@ export function useGithubRepoColumn(
       pushedAtLabel: repo.pushedAt
         ? formatRelativeTime(repo.pushedAt)
         : "never",
-      weeklyCommits: hasActivity ? (activity[repo.fullName] ?? null) : null,
-      isActivityLoading: !hasActivity,
+      weeklyCommits: Array.isArray(weeks) ? weeks : null,
+      isActivityLoading: !hasActivityEntry,
     };
   });
 

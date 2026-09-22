@@ -17,7 +17,9 @@ export async function connectGithubController(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL(ROUTES.auth, request.url));
+    return NextResponse.redirect(
+      new URL(ROUTES.authWithMode("login"), request.url),
+    );
   }
 
   let clientId: string;

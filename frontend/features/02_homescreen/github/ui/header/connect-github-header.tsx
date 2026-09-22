@@ -17,9 +17,9 @@ export function ConnectGithubHeader() {
         Connect GitHub
       </h1>
       <p className="font-sans text-sm text-white">
-        Mirror repo activity into a branch tree. Auth stays on GitHub. We only
-        call read APIs (GET) — though classic OAuth still requires the broad{" "}
-        <code className="text-xs">repo</code> scope to see private repos.
+        See your repos as a living branch tree and keep notes on each feature.
+        We only read from GitHub; nothing is written back. Private repos need
+        the usual GitHub <code className="text-xs">repo</code> access.
       </p>
     </header>
   );

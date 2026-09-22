@@ -1,9 +1,17 @@
-import { isProtectedPath, PROTECTED_ROUTES, ROUTES } from "@/lib/routes";
+import {
+  isProtectedPath,
+  parseAuthMode,
+  PROTECTED_ROUTES,
+  ROUTES,
+} from "@/lib/routes";
 import { describe, expect, it } from "vitest";
 
 describe("ROUTES", () => {
-  it("expose les chemins auth, home, repository et api", () => {
-    expect(ROUTES.auth).toBe("/");
+  it("expose splash, auth, home, repository et api", () => {
+    expect(ROUTES.splash).toBe("/");
+    expect(ROUTES.auth).toBe("/auth");
+    expect(ROUTES.authWithMode("login")).toBe("/auth?mode=login");
+    expect(ROUTES.authWithMode("register")).toBe("/auth?mode=register");
     expect(ROUTES.home).toBe("/home");
     expect(ROUTES.repositoryRoot).toBe("/repository");
     expect(ROUTES.repository("acme", "app")).toBe("/repository/acme/app");
@@ -15,6 +23,16 @@ describe("ROUTES", () => {
   it("marque home et repository comme routes protégées", () => {
     expect(PROTECTED_ROUTES).toContain(ROUTES.home);
     expect(PROTECTED_ROUTES).toContain(ROUTES.repositoryRoot);
+  });
+});
+
+describe("parseAuthMode", () => {
+  it("accepte register, sinon login", () => {
+    expect(parseAuthMode("register")).toBe("register");
+    expect(parseAuthMode("login")).toBe("login");
+    expect(parseAuthMode(null)).toBe("login");
+    expect(parseAuthMode(undefined)).toBe("login");
+    expect(parseAuthMode("other")).toBe("login");
   });
 });
 
@@ -32,8 +50,9 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/repository/acme/app")).toBe(true);
   });
 
-  it("ne match pas la page auth ni des routes voisines", () => {
+  it("ne match pas splash, auth ni routes voisines", () => {
     expect(isProtectedPath("/")).toBe(false);
+    expect(isProtectedPath("/auth")).toBe(false);
     expect(isProtectedPath("/api/me")).toBe(false);
     expect(isProtectedPath("/homes")).toBe(false);
     expect(isProtectedPath("/login")).toBe(false);

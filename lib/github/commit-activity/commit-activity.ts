@@ -28,6 +28,7 @@ export function extractRecentWeeklyTotals(
 
 /**
  * Stats commit_activity GitHub — peut répondre 202 le temps du calcul.
+ * Plus de retries : première visite post-connect laisse souvent GitHub chauffer.
  */
 export async function fetchGithubCommitActivity(input: {
   accessToken: string;
@@ -36,7 +37,7 @@ export async function fetchGithubCommitActivity(input: {
 }): Promise<number[] | null> {
   const url = `https://api.github.com/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/stats/commit_activity`;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     const response = await githubApiGet({
       accessToken: input.accessToken,
       url,
@@ -45,7 +46,7 @@ export async function fetchGithubCommitActivity(input: {
 
     if (response.status === 202) {
       await new Promise((resolve) => {
-        setTimeout(resolve, 800);
+        setTimeout(resolve, 700 + attempt * 400);
       });
       continue;
     }

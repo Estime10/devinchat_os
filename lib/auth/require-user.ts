@@ -17,7 +17,7 @@ export async function requireUser(): Promise<AuthUser> {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(ROUTES.auth);
+    redirect(ROUTES.authWithMode("login"));
   }
 
   return {
